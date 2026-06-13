@@ -148,10 +148,43 @@
 
                     <hr>
 
-                    <div class="d-flex justify-content-between">
+                    @if(!$isB2B)
+                        {{-- Voucher Code Box --}}
+                        <div class="mb-3 mt-2">
+                            <label class="form-label small fw-bold"><i class="fas fa-ticket-alt me-1 text-primary"></i>Mempunyai Kode Voucher?</label>
+                            <div class="input-group">
+                                <input type="text" id="voucher_code_input" class="form-control text-uppercase" placeholder="Masukkan Kode Voucher" value="{{ $voucher ? $voucher->code : '' }}" {{ $voucher ? 'disabled' : '' }}>
+                                <button class="btn {{ $voucher ? 'btn-danger' : 'btn-primary' }}" type="button" id="btn_apply_voucher">
+                                    {{ $voucher ? 'Batalkan' : 'Terapkan' }}
+                                </button>
+                            </div>
+                            <div id="voucher_message" class="small mt-1 {{ $voucherError ? 'text-danger' : ($voucher ? 'text-success' : '') }}">
+                                @if($voucher)
+                                    Voucher {{ $voucher->code }} berhasil diterapkan! (Potongan Rp {{ number_format($discount, 0, ',', '.') }})
+                                @elseif($voucherError)
+                                    {{ $voucherError }}
+                                @endif
+                            </div>
+                        </div>
+                        <hr>
+                    @endif
+
+                    <div class="d-flex justify-content-between mb-2 small text-muted">
+                        <span>Subtotal Belanja</span>
+                        <span>Rp {{ number_format($cart->total_price, 0, ',', '.') }}</span>
+                    </div>
+
+                    @if(!$isB2B)
+                        <div class="d-flex justify-content-between mb-2 text-success small" id="voucher_discount_row" style="display: {{ $voucher ? 'flex' : 'none' }} !important;">
+                            <span id="voucher_discount_label">{{ $voucher && $voucher->type === 'shipping_subsidy' ? 'Subsidi Ongkir' : 'Potongan Voucher' }}</span>
+                            <span id="voucher_discount_val">-Rp {{ number_format($discount, 0, ',', '.') }}</span>
+                        </div>
+                    @endif
+
+                    <div class="d-flex justify-content-between mt-2">
                         <span class="fw-bold">Total Tagihan</span>
-                        <h5 class="text-primary fw-bold mb-0">
-                            Rp {{ number_format($cart->total_price, 0, ',', '.') }}
+                        <h5 class="text-primary fw-bold mb-0" id="total_tagihan_val">
+                            Rp {{ number_format($cart->total_price - $discount, 0, ',', '.') }}
                         </h5>
                     </div>
 
@@ -163,4 +196,88 @@
     </form>
 
 </div>
+
+@if(!$isB2B)
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnApply = document.getElementById('btn_apply_voucher');
+        const inputVoucher = document.getElementById('voucher_code_input');
+        const msgVoucher = document.getElementById('voucher_message');
+        const discountRow = document.getElementById('voucher_discount_row');
+        const discountVal = document.getElementById('voucher_discount_val');
+        const totalTagihanVal = document.getElementById('total_tagihan_val');
+
+        btnApply.addEventListener('click', function() {
+            const isApplied = btnApply.classList.contains('btn-danger');
+            
+            if (isApplied) {
+                // Remove Voucher
+                fetch("{{ route('cart.removeVoucher') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        btnApply.textContent = 'Terapkan';
+                        btnApply.className = 'btn btn-primary';
+                        inputVoucher.value = '';
+                        inputVoucher.disabled = false;
+                        msgVoucher.textContent = '';
+                        msgVoucher.className = 'small mt-1';
+                        discountRow.style.setProperty('display', 'none', 'important');
+                        totalTagihanVal.textContent = data.final_total_formatted;
+                    }
+                });
+            } else {
+                // Apply Voucher
+                const code = inputVoucher.value.trim();
+                if (!code) {
+                    alert('Silakan masukkan kode voucher terlebih dahulu!');
+                    return;
+                }
+
+                btnApply.disabled = true;
+                fetch("{{ route('cart.applyVoucher') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ code: code })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btnApply.disabled = false;
+                    if (data.success) {
+                        btnApply.textContent = 'Batalkan';
+                        btnApply.className = 'btn btn-danger';
+                        inputVoucher.disabled = true;
+                        
+                        // Update label dynamically (Potongan Voucher or Subsidi Ongkir)
+                        document.getElementById('voucher_discount_label').textContent = data.label;
+                        
+                        msgVoucher.textContent = data.message + ' (' + data.label + ' ' + data.discount_formatted + ')';
+                        msgVoucher.className = 'small mt-1 text-success';
+                        
+                        discountVal.textContent = '-' + data.discount_formatted;
+                        discountRow.style.setProperty('display', 'flex', 'important');
+                        totalTagihanVal.textContent = data.final_total_formatted;
+                    } else {
+                        msgVoucher.textContent = data.message;
+                        msgVoucher.className = 'small mt-1 text-danger';
+                    }
+                })
+                .catch(err => {
+                    btnApply.disabled = false;
+                    alert('Gagal menerapkan voucher.');
+                });
+            }
+        });
+    });
+</script>
+@endif
 @endsection

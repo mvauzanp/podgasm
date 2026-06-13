@@ -9,6 +9,8 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\B2BRegistration;
+use App\Models\Voucher;
+use App\Models\VoucherUsage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -357,11 +359,104 @@ class CartController extends Controller
             return redirect()->route('cart.index')->with('error', 'Keranjang kosong!');
         }
         
+        // Hitung subtotal belanja
+        $subtotal = $cart->total_price;
+        $discount = 0;
+        $voucher = null;
+        $voucherError = null;
+
+        $appliedVoucherCode = session('applied_voucher_code');
+        if ($appliedVoucherCode) {
+            $voucher = Voucher::where('code', $appliedVoucherCode)->first();
+            if ($voucher) {
+                $check = $voucher->isValidForUser(Auth::user(), $subtotal);
+                if ($check['valid']) {
+                    $discount = $voucher->calculateDiscount($subtotal);
+                } else {
+                    $voucherError = $check['message'];
+                    session()->forget('applied_voucher_code');
+                }
+            } else {
+                session()->forget('applied_voucher_code');
+            }
+        }
+        
         // Hitung cart count dan wishlist count untuk navbar
         $cartCount = $cart->items()->sum('quantity');
         $wishlistCount = session()->get('wishlist') ? count(session()->get('wishlist')) : 0;
 
-        return view('pages.frontend.checkout', compact('cart', 'items', 'cartCount', 'wishlistCount'));
+        return view('pages.frontend.checkout', compact('cart', 'items', 'cartCount', 'wishlistCount', 'voucher', 'discount', 'voucherError'));
+    }
+
+    /**
+     * Apply B2C Voucher code
+     */
+    public function applyVoucher(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|max:50'
+        ]);
+
+        // Only allow B2C users (customers) to use B2C vouchers
+        if (Auth::user()->role === 'branch') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun B2B cabang tidak dapat menggunakan voucher B2C.'
+            ], 403);
+        }
+
+        $code = strtoupper(trim($request->code));
+        $voucher = Voucher::where('code', $code)->first();
+
+        if (!$voucher) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode voucher tidak valid.'
+            ]);
+        }
+
+        $cart = Cart::getOrCreateForUser(Auth::id());
+        $subtotal = $cart->total_price;
+
+        $check = $voucher->isValidForUser(Auth::user(), $subtotal);
+        if (!$check['valid']) {
+            return response()->json([
+                'success' => false,
+                'message' => $check['message']
+            ]);
+        }
+
+        // Save voucher code to session
+        session(['applied_voucher_code' => $code]);
+        $discount = $voucher->calculateDiscount($subtotal);
+        $finalTotal = $subtotal - $discount;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Voucher berhasil diterapkan!',
+            'type' => $voucher->type,
+            'label' => $voucher->type === 'shipping_subsidy' ? 'Subsidi Ongkir' : 'Potongan Voucher',
+            'discount' => $discount,
+            'discount_formatted' => 'Rp ' . number_format($discount, 0, ',', '.'),
+            'final_total' => $finalTotal,
+            'final_total_formatted' => 'Rp ' . number_format($finalTotal, 0, ',', '.')
+        ]);
+    }
+
+    /**
+     * Remove applied B2C Voucher code
+     */
+    public function removeVoucher()
+    {
+        session()->forget('applied_voucher_code');
+        $cart = Cart::getOrCreateForUser(Auth::id());
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Voucher berhasil dihapus.',
+            'final_total' => $cart->total_price,
+            'final_total_formatted' => 'Rp ' . number_format($cart->total_price, 0, ',', '.')
+        ]);
     }
 
     /**
@@ -484,8 +579,28 @@ class CartController extends Controller
                 ];
             }
 
+            // Calculate B2C Voucher discount if applicable
+            $discount = 0;
+            $voucherCode = session('applied_voucher_code');
+            $voucher = null;
+
+            if ($voucherCode && Auth::user()->role !== 'branch') {
+                $voucher = Voucher::where('code', $voucherCode)->first();
+                if ($voucher) {
+                    $check = $voucher->isValidForUser(Auth::user(), $total);
+                    if ($check['valid']) {
+                        $discount = $voucher->calculateDiscount($total);
+                    } else {
+                        DB::rollBack();
+                        return redirect()->back()->with('error', 'Voucher tidak valid: ' . $check['message']);
+                    }
+                }
+            }
+
+            $finalTotal = max(0, $total - $discount);
+
             // ✅ VALIDASI 2: Total harga masuk akal (tidak terlalu besar/kecil)
-            if ($total <= 0 || $total > 999999999) {
+            if ($finalTotal < 0 || $finalTotal > 999999999) {
                 DB::rollBack();
                 return redirect()->back()->with('error', 'Total harga order tidak valid');
             }
@@ -498,11 +613,26 @@ class CartController extends Controller
                 'email' => $request->email,
                 'no_telp' => $request->no_telp,
                 'invoice_number' => 'INV-' . strtoupper(uniqid()),
-                'total_harga' => $total,
+                'total_harga' => $finalTotal,
+                'voucher_code' => $voucher ? $voucher->code : null,
+                'voucher_discount' => $discount,
                 'metode_pembayaran' => $request->metode_pembayaran,
                 'alamat_pengiriman' => $request->alamat_pengiriman,
                 'status' => 'pending_payment' // ✅ Menunggu pembayaran - stok belum dikurangi
             ]);
+
+            // Save voucher usage record and increment used count
+            if ($voucher) {
+                VoucherUsage::create([
+                    'user_id' => Auth::id(),
+                    'voucher_id' => $voucher->id,
+                    'order_id' => $order->id,
+                ]);
+                $voucher->increment('used_count');
+            }
+
+            // Clear voucher session
+            session()->forget('applied_voucher_code');
 
             // 3. Simpan order items (TANPA mengurangi stok dulu)
             foreach ($orderItems as $orderItem) {

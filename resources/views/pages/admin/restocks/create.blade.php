@@ -166,8 +166,10 @@
             <td>
                 <div class="input-group">
                     <span class="input-group-text bg-light text-muted small" style="font-size: 0.8rem;">Rp</span>
-                    <input type="number" name="items[${rowIndex}][purchase_price]" class="form-control purchase-price-input" 
-                           data-row="${rowIndex}" value="0" min="0" required>
+                    <input type="text" class="form-control purchase-price-display" 
+                           data-row="${rowIndex}" placeholder="0" required>
+                    <input type="hidden" name="items[${rowIndex}][purchase_price]" class="purchase-price-input" 
+                           data-row="${rowIndex}" value="0">
                 </div>
             </td>
             <td class="text-end fw-bold text-dark subtotal-cell" id="subtotal_${rowIndex}">
@@ -186,6 +188,10 @@
         bindRowEvents(rowIndex);
         rowIndex++;
         updateTotals();
+    }
+
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
 
     function bindRowEvents(idx) {
@@ -219,7 +225,28 @@
 
         // Event: Ubah Qty & Harga Beli -> Update Subtotal
         rowNode.querySelector('.quantity-input').addEventListener('input', () => calculateSubtotal(idx));
-        rowNode.querySelector('.purchase-price-input').addEventListener('input', () => calculateSubtotal(idx));
+
+        const displayInp = rowNode.querySelector('.purchase-price-display');
+        const hiddenInp = rowNode.querySelector('.purchase-price-input');
+        
+        if (displayInp && hiddenInp) {
+            displayInp.addEventListener('input', function() {
+                let value = this.value.replace(/\D/g, '');
+                if (value) {
+                    hiddenInp.value = value;
+                    this.value = formatNumber(value);
+                } else {
+                    hiddenInp.value = '';
+                    this.value = '';
+                }
+                calculateSubtotal(idx);
+            });
+            
+            // Format initial if needed
+            if (hiddenInp.value) {
+                displayInp.value = formatNumber(hiddenInp.value);
+            }
+        }
 
         // Event: Klik Hapus Baris
         rowNode.querySelector('.btn-remove').addEventListener('click', function() {

@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\PromoBannerController;
 use App\Http\Controllers\Admin\B2BPriceSettingController;
 use App\Http\Controllers\Admin\RestockController;
+use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\CsChatController;
 use App\Http\Controllers\Branch\BranchController;
 
 /*
@@ -75,6 +77,8 @@ Route::middleware(['auth'])
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+    Route::post('/checkout/apply-voucher', [CartController::class, 'applyVoucher'])->name('cart.applyVoucher');
+    Route::post('/checkout/remove-voucher', [CartController::class, 'removeVoucher'])->name('cart.removeVoucher');
     Route::post('/checkout/process', [CartController::class, 'processCheckout'])->name('cart.processCheckout');
     Route::get('/history', [OrderController::class, 'history'])->name('order.history');
     Route::get('/history/{id}', [OrderController::class, 'show'])->name('order.show');
@@ -90,6 +94,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // ✅ FITUR LIVE CHAT CS (B2C & B2B Reseller)
+    Route::get('/chat/messages', [CsChatController::class, 'fetchMessages'])->name('chat.fetch');
+    Route::post('/chat/messages', [CsChatController::class, 'sendMessage'])->name('chat.send');
 });
 
 /*
@@ -141,6 +149,17 @@ Route::middleware(['auth', 'role:admin'])
         // Setting Harga B2B
         Route::resource('b2b-prices', B2BPriceSettingController::class)->except(['show']);
 
+        // Manajemen Voucher B2C
+        Route::resource('vouchers', VoucherController::class)->except(['show']);
+
+        // Fitur Live Chat CS (Admin Backoffice)
+        Route::controller(CsChatController::class)->group(function () {
+            Route::get('/cs-chats', 'adminIndex')->name('cs-chats.index');
+            Route::get('/cs-chats/threads', 'adminFetchThreads')->name('cs-chats.threads');
+            Route::get('/cs-chats/messages/{userId}', 'adminFetchMessages')->name('cs-chats.messages');
+            Route::post('/cs-chats/messages/{userId}', 'adminSendMessage')->name('cs-chats.send');
+        });
+
         // Algoritma Safety Stock
         Route::controller(SafetyStockController::class)->group(function () {
             Route::get('/safety-stock', 'index')->name('ss.index');
@@ -183,6 +202,7 @@ Route::middleware(['auth', 'role:admin'])
             Route::get('/b2b-registrations', 'listPending')->name('b2b.list');
             Route::post('/b2b-registrations/{registration}/approve', 'approve')->name('b2b.approve');
             Route::post('/b2b-registrations/{registration}/reject', 'reject')->name('b2b.reject');
+            Route::post('/b2b-registrations/branch', 'storeBranch')->name('b2b.storeBranch');
         });
 
     }

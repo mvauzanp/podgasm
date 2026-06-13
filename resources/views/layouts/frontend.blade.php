@@ -601,6 +601,9 @@
         }
     </script>
 
+    {{-- Live Chat CS Widget for B2B/B2C without branch --}}
+    @include('components._cs-chat-widget')
+
     {{-- ✅ PERBAIKAN: Stack untuk @push('scripts') dari child views --}}
     @stack('scripts')
 

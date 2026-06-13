@@ -218,6 +218,20 @@
                             ) }}
                         </td>
                     </tr>
+                    @if($order->voucher_code)
+                    @php
+                        $voucherInfo = \App\Models\Voucher::where('code', $order->voucher_code)->first();
+                        $voucherLabel = ($voucherInfo && $voucherInfo->type === 'shipping_subsidy') ? 'Subsidi Ongkir' : 'Voucher';
+                    @endphp
+                    <tr>
+                        <td class="fw-bold text-success">
+                            <i class="fas fa-ticket-alt me-1"></i> {{ $voucherLabel }} ({{ $order->voucher_code }})
+                        </td>
+                        <td class="text-end text-success fw-semibold">
+                            -Rp {{ number_format($order->voucher_discount, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                    @endif
                     <tr class="border-top pt-3">
                         <td class="fw-bold fs-5">Total Pembayaran</td>
                         <td class="text-end fw-bold text-success fs-5">

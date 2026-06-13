@@ -78,7 +78,27 @@
                                 @endforeach
                             </tbody>
                             <tfoot>
+                                @if($order->voucher_code)
                                 <tr>
+                                    <td colspan="3" class="text-end text-muted small py-2">Subtotal Belanja</td>
+                                    <td class="text-end text-muted small py-2">
+                                        Rp {{ number_format($order->total_harga + $order->voucher_discount, 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                                @php
+                                    $voucherInfo = \App\Models\Voucher::where('code', $order->voucher_code)->first();
+                                    $voucherLabel = ($voucherInfo && $voucherInfo->type === 'shipping_subsidy') ? 'Subsidi Ongkir' : 'Voucher';
+                                @endphp
+                                <tr>
+                                    <td colspan="3" class="text-end text-success small py-2">
+                                        {{ $voucherLabel }} ({{ $order->voucher_code }})
+                                    </td>
+                                    <td class="text-end text-success small py-2">
+                                        -Rp {{ number_format($order->voucher_discount, 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                                @endif
+                                <tr class="border-top">
                                     <td colspan="3" class="text-end fw-bold py-3">Total Pembayaran</td>
                                     <td class="text-end fw-bold text-primary py-3 h5">
                                         Rp {{ number_format($order->total_harga, 0, ',', '.') }}

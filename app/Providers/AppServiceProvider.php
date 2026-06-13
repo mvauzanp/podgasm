@@ -50,6 +50,14 @@ class AppServiceProvider extends ServiceProvider
                 $pendingB2BCount = \App\Models\B2BRegistration::where('status', 'pending')->count();
                 View::share('pendingB2BCount', $pendingB2BCount);
             }
+
+            // 4. Bagian Notifikasi Chat CS (TAMBAHKAN INI)
+            if (Schema::hasTable('cs_messages')) {
+                $unreadCsCount = \App\Models\CsMessage::whereColumn('sender_id', 'user_id')
+                    ->where('is_read', false)
+                    ->count();
+                View::share('unreadCsCount', $unreadCsCount);
+            }
         }
     }
 }

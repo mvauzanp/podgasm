@@ -136,6 +136,7 @@ class AuthController extends Controller
                 'email'    => $email,
                 'password' => Hash::make($request->password),
                 'role'     => 'branch',
+                'b2b_type' => 'reseller',
                 'phone'    => $request->phone,
                 'address'  => $request->address,
             ]);

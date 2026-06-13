@@ -16,6 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'b2b_type',
         'phone',
         'address',
     ];
@@ -46,5 +47,10 @@ class User extends Authenticatable
     public function branchStocks()
     {
         return $this->hasMany(BranchStock::class);
+    }
+
+    public function b2bRegistration()
+    {
+        return $this->hasOne(B2BRegistration::class, 'user_id');
     }
 }

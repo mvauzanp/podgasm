@@ -19,6 +19,8 @@ class Order extends Model
         'no_telp', 
         'invoice_number', 
         'total_harga', 
+        'voucher_code',
+        'voucher_discount',
         'metode_pembayaran', 
         'alamat_pengiriman', 
         'status'

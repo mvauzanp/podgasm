@@ -33,4 +33,10 @@ class B2BRegistration extends Model
     {
         return $this->belongsTo(User::class, 'reviewed_by');
     }
+
+    // Relationship with registered User
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }
