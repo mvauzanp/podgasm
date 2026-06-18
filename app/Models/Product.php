@@ -114,10 +114,31 @@ class Product extends Model
         return $this->harga_jual;
     }
 
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::deleting(function ($product) {
+            if ($product->isForceDeleting()) {
+                $product->variants()->forceDelete();
+                $product->images()->forceDelete();
+            } else {
+                $product->variants()->delete();
+            }
+        });
+        
+        static::restoring(function ($product) {
+            $product->variants()->restore();
+        });
+    }
+
     // 🖼️ Ambil URL gambar (biar blade lebih bersih)
     public function getGambarUrlAttribute()
     {
         if ($this->gambar) {
+            if (str_starts_with($this->gambar, 'http')) {
+                return $this->gambar;
+            }
             return asset('storage/' . $this->gambar);
         }
 

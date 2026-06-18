@@ -84,7 +84,7 @@ class StockRequestController extends Controller
                 'product_id'   => $stockRequest->product_id,
                 'jumlah'       => $jumlahApproved,
                 'total_harga'  => $price * $jumlahApproved,
-                'jenis'        => 'keluar',
+                'jenis'        => 'B2B',
                 'tanggal'      => now()
             ]);
 

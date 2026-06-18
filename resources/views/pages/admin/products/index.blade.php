@@ -14,12 +14,20 @@
             </p>
         </div>
 
-        <a href="{{ route('admin.products.create') }}"
-           class="btn btn-primary rounded-4 px-4 py-2 mt-3 mt-md-0 shadow-sm">
-
-            <i class="fas fa-plus me-2"></i>
-            Tambah Produk
-        </a>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <button type="button" 
+                    class="btn btn-outline-success rounded-4 px-4 py-2 shadow-sm"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#importExcelModal">
+                <i class="fas fa-file-excel me-2"></i>
+                Import Excel
+            </button>
+            <a href="{{ route('admin.products.create') }}"
+               class="btn btn-primary rounded-4 px-4 py-2 shadow-sm">
+                <i class="fas fa-plus me-2"></i>
+                Tambah Produk
+            </a>
+        </div>
 
     </div>
 
@@ -351,6 +359,62 @@
 
     </div>
 
+</div>
+
+<!-- Modal Import Excel -->
+<div class="modal fade" id="importExcelModal" tabindex="-1" aria-labelledby="importExcelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0 bg-light rounded-top-4 py-3">
+                <h5 class="modal-title fw-bold text-dark" id="importExcelModalLabel">
+                    <i class="fas fa-file-excel text-success me-2"></i>
+                    Import Produk Massal (Excel)
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.products.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <div class="col-md-5 border-end pe-md-4 mb-3 mb-md-0">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-info-circle text-primary me-2"></i>Petunjuk Pengisian</h6>
+                            <ol class="ps-3 text-muted small" style="line-height: 1.6;">
+                                <li class="mb-2">Unduh template Excel yang telah disediakan melalui tombol di bawah.</li>
+                                <li class="mb-2">Isi data produk sesuai kolom (kolom berwarna abu-abu adalah header).</li>
+                                <li class="mb-2">Pastikan <b>Kategori / Sub-Kategori</b> diisi sama persis seperti nama kategori/sub-kategori di tab <i>Daftar Kategori</i> Excel.</li>
+                                <li class="mb-2">Untuk <b>Produk Varian</b>: Tulis baris baru dengan nama produk yang sama, lalu isi kolom <i>Nama Varian</i>.</li>
+                                <li class="mb-2">Kolom harga dan stok harus diisi dengan angka bulat positif.</li>
+                                <li class="mb-2">Format tanggal expired/cukai wajib <code>YYYY-MM-DD</code> (contoh: 2027-12-31).</li>
+                            </ol>
+                            <div class="mt-4 text-center">
+                                <a href="{{ route('admin.products.template') }}" class="btn btn-success rounded-4 w-100 py-2 shadow-sm text-white">
+                                    <i class="fas fa-download me-2"></i>Unduh Template Excel
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-7 ps-md-4 d-flex flex-column justify-content-center">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-cloud-upload-alt text-success me-2"></i>Unggah File</h6>
+                            <div class="mb-4">
+                                <label for="file_excel" class="form-label text-muted small">Pilih file Excel (.xlsx / .xls)</label>
+                                <div class="border border-dashed rounded-4 p-4 text-center bg-light cursor-pointer position-relative" style="border-style: dashed !important; border-width: 2px !important; border-color: #198754 !important;">
+                                    <i class="fas fa-file-excel text-success fs-1 mb-3"></i>
+                                    <p class="mb-1 fw-semibold small">Pilih File Anda</p>
+                                    <p class="text-muted small mb-0">Format file yang didukung: .xlsx atau .xls</p>
+                                    <input type="file" name="file_excel" id="file_excel" class="form-control mt-3" accept=".xlsx, .xls" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light rounded-bottom-4 py-3">
+                    <button type="button" class="btn btn-secondary rounded-4 px-4 py-2" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success rounded-4 px-4 py-2 shadow-sm text-white">
+                        <i class="fas fa-upload me-2"></i>Mulai Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 @endsection

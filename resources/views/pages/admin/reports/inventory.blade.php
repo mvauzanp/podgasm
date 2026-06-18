@@ -59,6 +59,7 @@
                         <th>Kategori</th>
                         <th>Stok</th>
                         <th>Tanggal Expired</th>
+                        <th>Tanggal Cukai</th>
                         <th>Status</th>
                         <th>Kerugian (Rp)</th>
                     </tr>
@@ -73,6 +74,11 @@
                         <td class="text-center">
                             {{ $item['tgl_expired'] 
                                 ? \Carbon\Carbon::parse($item['tgl_expired'])->format('d/m/Y') 
+                                : '-' }}
+                        </td>
+                        <td class="text-center">
+                            {{ $item['tgl_cukai'] 
+                                ? \Carbon\Carbon::parse($item['tgl_cukai'])->format('d/m/Y') 
                                 : '-' }}
                         </td>
                         <td class="text-center">

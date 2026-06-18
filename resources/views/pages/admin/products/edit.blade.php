@@ -598,15 +598,27 @@ function addVariantRow(data = {})
     
     let idInput = '';
     let imageHtml = '';
+    let originalUrlAttr = '';
     if (data.id) {
         idInput = `<input type="hidden" name="variants[${variantIndex}][id]" value="${data.id}">`;
     }
     
     if (data.gambar_url) {
+        originalUrlAttr = `data-original-url="${data.gambar_url}"`;
         imageHtml = `
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <img src="${data.gambar_url}" class="rounded border" style="width: 32px; height: 32px; object-fit: cover;">
-                <span class="small text-muted" style="font-size: 10px;">Aktif</span>
+            <div id="variant_image_preview_${variantIndex}" class="d-flex align-items-center gap-2 mb-2">
+                <img src="${data.gambar_url}" class="rounded border" style="width: 38px; height: 38px; object-fit: cover;">
+                <span class="badge bg-success text-white px-2 py-1" style="font-size: 10px; font-weight: 500; display: inline-flex; align-items: center;">
+                    <i class="fas fa-check-circle me-1"></i> Gambar Terunggah
+                </span>
+            </div>
+        `;
+    } else {
+        imageHtml = `
+            <div id="variant_image_preview_${variantIndex}" class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 10px; font-weight: 500; display: inline-flex; align-items: center;">
+                    <i class="fas fa-image-slash me-1"></i> Belum Ada Gambar
+                </span>
             </div>
         `;
     }
@@ -644,7 +656,7 @@ function addVariantRow(data = {})
         </td>
         <td>
             ${imageHtml}
-            <input type="file" name="variants[${variantIndex}][gambar]" class="form-control rounded-3" accept="image/*">
+            <input type="file" name="variants[${variantIndex}][gambar]" id="variant_gambar_input_${variantIndex}" class="form-control rounded-3 variant-image-input" accept="image/*" onchange="previewVariantImage(this, ${variantIndex})" ${originalUrlAttr}>
         </td>
         <td class="text-center pe-4">
             <button type="button" class="btn btn-outline-danger btn-sm border-0 rounded-circle p-2" onclick="removeVariantRow(${variantIndex})">
@@ -747,7 +759,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 stok_aktual: variant.stok_aktual,
                 tgl_expired: variant.tgl_expired ? variant.tgl_expired.substring(0, 10) : '',
                 tgl_cukai: variant.tgl_cukai ? variant.tgl_cukai.substring(0, 10) : '',
-                gambar_url: variant.gambar ? '{{ asset('storage') }}/' + variant.gambar : ''
+                gambar_url: variant.gambar ? (variant.gambar.startsWith('http') ? variant.gambar : '{{ asset('storage') }}/' + variant.gambar) : ''
             });
         });
         
@@ -882,6 +894,50 @@ function renderAllPreviews() {
         };
         reader.readAsDataURL(file);
     });
+}
+
+function previewVariantImage(input, index) {
+    const previewDiv = document.getElementById(`variant_image_preview_${index}`);
+    if (!previewDiv) return;
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewDiv.style.setProperty('display', 'flex', 'important');
+            previewDiv.innerHTML = `
+                <div class="position-relative">
+                    <img src="${e.target.result}" class="rounded border" style="width: 38px; height: 38px; object-fit: cover;">
+                </div>
+                <div>
+                    <span class="badge bg-primary text-white px-2 py-1" style="font-size: 10px; font-weight: 500; display: inline-flex; align-items: center;">
+                        <i class="fas fa-file-image me-1"></i> Gambar Terpilih
+                    </span>
+                    <div class="text-muted mt-1" style="font-size: 9px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${input.files[0].name}
+                    </div>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        const originalUrl = input.getAttribute('data-original-url');
+        if (originalUrl) {
+            previewDiv.style.setProperty('display', 'flex', 'important');
+            previewDiv.innerHTML = `
+                <img src="${originalUrl}" class="rounded border" style="width: 38px; height: 38px; object-fit: cover;">
+                <span class="badge bg-success text-white px-2 py-1" style="font-size: 10px; font-weight: 500;">
+                    <i class="fas fa-check-circle me-1"></i> Gambar Terunggah
+                </span>
+            `;
+        } else {
+            previewDiv.style.setProperty('display', 'flex', 'important');
+            previewDiv.innerHTML = `
+                <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 10px; font-weight: 500; display: inline-flex; align-items: center;">
+                    <i class="fas fa-image-slash me-1"></i> Belum Ada Gambar
+                </span>
+            `;
+        }
+    }
 }
 
 </script>

@@ -20,6 +20,8 @@ class ProductVariant extends Model
         'harga_pokok',
         'stok_aktual',
         'nilai_ss',
+        'lead_time',
+        'rata_penjualan',
         'tgl_expired',
         'tgl_cukai',
         'gambar',
@@ -41,6 +43,9 @@ class ProductVariant extends Model
     public function getGambarUrlAttribute()
     {
         if ($this->gambar) {
+            if (str_starts_with($this->gambar, 'http')) {
+                return $this->gambar;
+            }
             return asset('storage/' . $this->gambar);
         }
         return $this->product->gambar_url;

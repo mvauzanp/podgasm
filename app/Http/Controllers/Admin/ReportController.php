@@ -11,36 +11,75 @@ class ReportController extends Controller
 {
     public function inventoryReport()
     {
-        $products = Product::with('category')->get();
-        
-        $reports = $products->map(function($product) {
-            $status = 'Aman';
-            $risiko_kerugian = 0;
-            
-            // Logika Estimasi Kerugian (Depresiasi Nilai)
-            // Jika barang expired dalam < 30 hari, nilai dianggap depresiasi 100%
-            if ($product->tgl_expired) {
-                $daysToExpired = now()->diffInDays($product->tgl_expired, false);
-                if ($daysToExpired <= 30 && $daysToExpired > 0) {
-                    $status = 'Risiko Sedang (Hampir Expired)';
-                    $risiko_kerugian = $product->harga_pokok * $product->stok_aktual * 0.5; // Potensi rugi 50% dari harga pokok/beli
-                } elseif ($daysToExpired <= 0) {
-                    $status = 'Risiko Tinggi (Expired)';
-                    $risiko_kerugian = $product->harga_pokok * $product->stok_aktual; // Potensi rugi 100% dari harga pokok/beli
-                }
-            }
+        $products = Product::with(['category', 'variants'])->get();
+        $reports = collect();
 
-            return [
-                'nama' => $product->nama_barang,
-                'kategori' => $product->category->nama_kategori ?? '-',
-                'stok' => $product->stok_aktual,
-                'harga' => $product->harga_jual,
-                'tgl_expired' => $product->tgl_expired,
-                'status' => $status,
-                'estimasi_rugi' => $risiko_kerugian
-            ];
-        });
+        foreach ($products as $product) {
+            if ($product->hasVariants()) {
+                foreach ($product->variants as $variant) {
+                    $reports->push($this->buildReportItem(
+                        $product->nama_barang . ' (' . $variant->nama_varian . ')',
+                        $product->category->nama_kategori ?? '-',
+                        $variant->stok_aktual,
+                        $variant->harga_jual_actual,
+                        $variant->harga_pokok ?? $product->harga_pokok,
+                        $variant->tgl_expired,
+                        $variant->tgl_cukai
+                    ));
+                }
+            } else {
+                $reports->push($this->buildReportItem(
+                    $product->nama_barang,
+                    $product->category->nama_kategori ?? '-',
+                    $product->stok_aktual,
+                    $product->harga_jual,
+                    $product->harga_pokok,
+                    $product->tgl_expired,
+                    $product->tgl_cukai
+                ));
+            }
+        }
 
         return view('pages.admin.reports.inventory', compact('reports'));
+    }
+
+    private function buildReportItem($nama, $kategori, $stok, $hargaJual, $hargaPokok, $tglExpired, $tglCukai)
+    {
+        $status = 'Aman';
+        $risiko_kerugian = 0;
+        
+        // 1. Cek Cukai Melewati Tahun (Cukai Lama)
+        if ($tglCukai) {
+            $cukaiYear = \Carbon\Carbon::parse($tglCukai)->year;
+            $currentYear = now()->year;
+            if ($cukaiYear < $currentYear) {
+                $status = 'Risiko Cukai (Melewati Tahun)';
+                // Potensi depresiasi nilai sebesar 30% untuk barang dengan cukai tahun lalu
+                $risiko_kerugian = $hargaPokok * $stok * 0.3;
+            }
+        }
+
+        // 2. Cek Expiry Date (memiliki prioritas status & risiko kerugian lebih tinggi jika expired)
+        if ($tglExpired) {
+            $daysToExpired = now()->diffInDays(\Carbon\Carbon::parse($tglExpired), false);
+            if ($daysToExpired <= 30 && $daysToExpired > 0) {
+                $status = 'Risiko Sedang (Hampir Expired)';
+                $risiko_kerugian = max($risiko_kerugian, $hargaPokok * $stok * 0.5); // Potensi rugi 50% dari harga pokok
+            } elseif ($daysToExpired <= 0) {
+                $status = 'Risiko Tinggi (Expired)';
+                $risiko_kerugian = $hargaPokok * $stok; // Potensi rugi 100% dari harga pokok
+            }
+        }
+
+        return [
+            'nama' => $nama,
+            'kategori' => $kategori,
+            'stok' => $stok,
+            'harga' => $hargaJual,
+            'tgl_expired' => $tglExpired,
+            'tgl_cukai' => $tglCukai,
+            'status' => $status,
+            'estimasi_rugi' => $risiko_kerugian
+        ];
     }
 }

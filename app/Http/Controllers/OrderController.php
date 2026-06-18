@@ -6,9 +6,19 @@ use App\Models\Order;
 use App\Models\Cart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\OrderService;
+use App\Exceptions\BusinessException;
+use App\Enums\OrderStatus;
 
 class OrderController extends Controller
 {
+    protected $orderService;
+
+    public function __construct(OrderService $orderService)
+    {
+        $this->orderService = $orderService;
+    }
+
     /**
      * Tampilkan riwayat pesanan user
      */
@@ -74,8 +84,8 @@ class OrderController extends Controller
                     ->with('error', 'Pesanan ini tidak dapat dikonfirmasi pembayarannya.');
             }
 
-            // ✅ Coba konfirmasi pembayaran (akan validate stok dan dekrement)
-            if ($order->confirmPayment()) {
+            // ✅ Coba konfirmasi pembayaran
+            if ($this->orderService->confirmPayment($order)) {
                 return redirect()->route('order.show', $order->id)
                     ->with('success', 'Pembayaran berhasil dikonfirmasi! Pesanan diproses.');
             } else {
@@ -83,17 +93,19 @@ class OrderController extends Controller
                     ->with('error', 'Gagal mengkonfirmasi pembayaran. Stok mungkin sudah habis.');
             }
 
+        } catch (BusinessException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error confirming payment for Order ID ' . $id . ': ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan sistem saat mengonfirmasi pembayaran.');
         }
     }
 
     /**
-     * ✅ PERBAIKAN #4: Batalkan pesanan
-     * 
-     * User bisa membatalkan order yang masih menunggu pembayaran
-     * Tidak perlu release stok karena belum dikurangi dari awal
+     * Batalkan pesanan
      */
     public function cancelOrder(Request $request, $id)
     {
@@ -107,7 +119,7 @@ class OrderController extends Controller
             }
 
             // ✅ Batalkan order
-            if ($order->cancelOrder()) {
+            if ($this->orderService->cancelOrder($order)) {
                 return redirect()->route('order.history')
                     ->with('success', 'Pesanan berhasil dibatalkan.');
             } else {
@@ -115,9 +127,14 @@ class OrderController extends Controller
                     ->with('error', 'Gagal membatalkan pesanan.');
             }
 
+        } catch (BusinessException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error cancelling Order ID ' . $id . ': ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan sistem saat membatalkan pesanan.');
         }
     }
 

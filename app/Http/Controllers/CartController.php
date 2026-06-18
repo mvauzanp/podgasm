@@ -14,9 +14,18 @@ use App\Models\VoucherUsage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\CheckoutRequest;
+use App\Services\OrderService;
 
 class CartController extends Controller
 {
+    protected $orderService;
+
+    public function __construct(OrderService $orderService)
+    {
+        $this->orderService = $orderService;
+    }
+
     /**
      * Display cart items for offcanvas
      */
@@ -260,13 +269,17 @@ class CartController extends Controller
             
             return redirect()->back()->with('success', 'Produk ditambahkan ke keranjang');
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error adding to cart: ' . $e->getMessage(), [
+                'exception' => $e,
+                'input' => $request->all()
+            ]);
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                    'message' => 'Terjadi kesalahan sistem saat menambahkan produk ke keranjang.'
                 ], 500);
             }
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan sistem saat menambahkan produk ke keranjang.');
         }
     }
 
@@ -309,7 +322,11 @@ class CartController extends Controller
 
             return redirect()->back()->with('success', 'Keranjang berhasil diperbarui!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Error updating cart: ' . $e->getMessage(), [
+                'exception' => $e,
+                'input' => $request->all()
+            ]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan sistem saat memperbarui keranjang belanja.');
         }
     }
 
@@ -343,7 +360,11 @@ class CartController extends Controller
 
             return redirect()->back()->with('success', 'Produk berhasil dihapus!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Error removing from cart: ' . $e->getMessage(), [
+                'exception' => $e,
+                'input' => $request->all()
+            ]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan sistem saat menghapus produk dari keranjang.');
         }
     }
 
@@ -462,205 +483,31 @@ class CartController extends Controller
     /**
      * Process checkout - Create order
      */
-    public function processCheckout(Request $request)
+    public function processCheckout(CheckoutRequest $request)
     {
-        // ✅ Validasi input dari form dengan rules lengkap dan pesan custom
-        $request->validate([
-            'nama_penerima' => [
-                'required',
-                'string',
-                'max:255',
-                'regex:/^[a-zA-Z\s\-\.\']+$/', // Hanya huruf, spasi, dash, dot, apostrof
-            ],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                'regex:/^[a-zA-Z0-9._\-@]+$/', // Validasi format email ketat
-            ],
-            'no_telp' => [
-                'required',
-                'numeric',
-                'digits_between:10,15', // 10-15 digit
-                'regex:/^(0|62)[0-9]{9,13}$/', // Nomor lokal atau internasional
-            ],
-            'alamat_pengiriman' => [
-                'required',
-                'string',
-                'min:10',
-                'max:500',
-                'regex:/^[a-zA-Z0-9\s\.\,\-\(\)]+$/', // Alamat format valid
-            ],
-            'metode_pembayaran' => [
-                'required',
-                'string',
-                'in:cash,transfer,e-wallet,branch_request',
-            ],
-        ], [
-            'nama_penerima.required' => 'Nama penerima harus diisi',
-            'nama_penerima.string' => 'Nama penerima harus berupa teks',
-            'nama_penerima.max' => 'Nama penerima maksimal 255 karakter',
-            'nama_penerima.regex' => 'Nama penerima hanya boleh berisi huruf, spasi, dan tanda baca',
-            'email.required' => 'Email harus diisi',
-            'email.email' => 'Format email tidak valid',
-            'email.max' => 'Email maksimal 255 karakter',
-            'email.regex' => 'Format email tidak sesuai',
-            'no_telp.required' => 'Nomor telepon harus diisi',
-            'no_telp.numeric' => 'Nomor telepon harus berupa angka',
-            'no_telp.digits_between' => 'Nomor telepon harus antara 10-15 digit',
-            'no_telp.regex' => 'Nomor telepon harus dimulai dengan 0 atau 62',
-            'alamat_pengiriman.required' => 'Alamat pengiriman harus diisi',
-            'alamat_pengiriman.string' => 'Alamat pengiriman harus berupa teks',
-            'alamat_pengiriman.min' => 'Alamat pengiriman minimal 10 karakter',
-            'alamat_pengiriman.max' => 'Alamat pengiriman maksimal 500 karakter',
-            'alamat_pengiriman.regex' => 'Alamat pengiriman berisi karakter tidak valid',
-            'metode_pembayaran.required' => 'Metode pembayaran harus dipilih',
-            'metode_pembayaran.in' => 'Metode pembayaran tidak valid',
-        ]);
-
         try {
-            DB::beginTransaction();
-
-            $cart = Cart::getOrCreateForUser(Auth::id());
-            $items = $cart->items()->with(['product', 'variant'])->get();
-
-            if ($items->isEmpty()) {
-                return redirect()->route('cart.index')->with('error', 'Keranjang kosong!');
-            }
-
-            $total = 0;
-            $orderItems = [];
-
-            // ✅ VALIDASI 1: Cek stok tersedia dan harga belum berubah
-            foreach ($items as $item) {
-                $product = $item->product;
-                $variant = $item->variant;
-                
-                $availableStock = $item->product_variant_id ? ($variant->stok_aktual ?? 0) : $product->stok_aktual;
-                $currentPrice = $item->getCurrentPrice();
-                $itemName = $item->product_variant_id ? "{$product->nama_barang} ({$variant->nama_varian})" : $product->nama_barang;
-                
-                // ✅ Cek stok cukup
-                if ($item->quantity > $availableStock) {
-                    DB::rollBack();
-                    return redirect()->back()->with('error', 
-                        "Stok tidak cukup untuk {$itemName}. Tersedia: {$availableStock}");
-                }
-
-                // ✅ Cek harga tetap sama (prevent price manipulation)
-                if ($item->price != $currentPrice) {
-                    DB::rollBack();
-                    return redirect()->back()->with('warning', 
-                        "Harga {$itemName} telah berubah. Silakan review cart ulang.");
-                }
-
-                // ✅ Validasi quantity tidak negatif dan reasonable
-                if ($item->quantity <= 0 || $item->quantity > 1000) {
-                    DB::rollBack();
-                    return redirect()->back()->with('error', 
-                        "Jumlah pembelian {$itemName} tidak valid");
-                }
-
-                $subtotal = $item->price * $item->quantity;
-                
-                // ✅ Validasi subtotal reasonable (harga tidak boleh terlalu kecil/besar)
-                if ($subtotal <= 0 || $subtotal > 999999999) {
-                    DB::rollBack();
-                    return redirect()->back()->with('error', 'Total harga item tidak valid');
-                }
-                
-                $total += $subtotal;
-                
-                $orderItems[] = [
-                    'product_id' => $item->product_id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                ];
-            }
-
-            // Calculate B2C Voucher discount if applicable
-            $discount = 0;
             $voucherCode = session('applied_voucher_code');
-            $voucher = null;
-
-            if ($voucherCode && Auth::user()->role !== 'branch') {
-                $voucher = Voucher::where('code', $voucherCode)->first();
-                if ($voucher) {
-                    $check = $voucher->isValidForUser(Auth::user(), $total);
-                    if ($check['valid']) {
-                        $discount = $voucher->calculateDiscount($total);
-                    } else {
-                        DB::rollBack();
-                        return redirect()->back()->with('error', 'Voucher tidak valid: ' . $check['message']);
-                    }
-                }
-            }
-
-            $finalTotal = max(0, $total - $discount);
-
-            // ✅ VALIDASI 2: Total harga masuk akal (tidak terlalu besar/kecil)
-            if ($finalTotal < 0 || $finalTotal > 999999999) {
-                DB::rollBack();
-                return redirect()->back()->with('error', 'Total harga order tidak valid');
-            }
-
-            // ✅ WORKFLOW PERBAIKAN #4: 
-            // 2. Simpan order dengan status 'pending_payment' - BELUM DECREMENT STOK
-            $order = Order::create([
-                'user_id' => Auth::id(),
-                'nama_penerima' => $request->nama_penerima,
-                'email' => $request->email,
-                'no_telp' => $request->no_telp,
-                'invoice_number' => 'INV-' . strtoupper(uniqid()),
-                'total_harga' => $finalTotal,
-                'voucher_code' => $voucher ? $voucher->code : null,
-                'voucher_discount' => $discount,
-                'metode_pembayaran' => $request->metode_pembayaran,
-                'alamat_pengiriman' => $request->alamat_pengiriman,
-                'status' => 'pending_payment' // ✅ Menunggu pembayaran - stok belum dikurangi
-            ]);
-
-            // Save voucher usage record and increment used count
-            if ($voucher) {
-                VoucherUsage::create([
-                    'user_id' => Auth::id(),
-                    'voucher_id' => $voucher->id,
-                    'order_id' => $order->id,
-                ]);
-                $voucher->increment('used_count');
-            }
+            $order = $this->orderService->processCheckout(
+                $request->validated(),
+                Auth::user(),
+                $voucherCode
+            );
 
             // Clear voucher session
             session()->forget('applied_voucher_code');
 
-            // 3. Simpan order items (TANPA mengurangi stok dulu)
-            foreach ($orderItems as $orderItem) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $orderItem['product_id'],
-                    'product_variant_id' => $orderItem['product_variant_id'],
-                    'quantity' => $orderItem['quantity'],
-                    'price' => $orderItem['price'],
-                ]);
-                
-                // ✅ PENTING: STOK TIDAK DIKURANGI DI SINI
-                // Stok akan dikurangi SETELAH pembayaran dikonfirmasi
-                // Lihat: OrderController::confirmPayment()
-            }
-
-            // 4. Clear cart setelah order berhasil dibuat
-            $cart->clear();
-
-            DB::commit();
-
-            // ✅ Redirect ke halaman pembayaran (akan diimplementasi di payment gateway)
+            // Redirect ke halaman pembayaran (akan diimplementasi di payment gateway)
             return redirect()->route('order.show', $order->id)
                 ->with('success', 'Pesanan berhasil dibuat! Silakan lakukan pembayaran.');
 
+        } catch (\App\Exceptions\BusinessException $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Error processing checkout: ' . $e->getMessage(), [
+                'exception' => $e,
+                'input' => $request->except(['password', 'password_confirmation'])
+            ]);
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memproses checkout Anda.');
         }
     }
 

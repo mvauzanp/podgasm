@@ -599,7 +599,12 @@ function addVariantRow(data = {})
             <input type="date" name="variants[${variantIndex}][tgl_cukai]" class="form-control rounded-3" value="${data.tgl_cukai || ''}">
         </td>
         <td>
-            <input type="file" name="variants[${variantIndex}][gambar]" class="form-control rounded-3" accept="image/*">
+            <div id="variant_image_preview_${variantIndex}" class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 10px; font-weight: 500; display: inline-flex; align-items: center;">
+                    <i class="fas fa-image-slash me-1"></i> Belum Ada Gambar
+                </span>
+            </div>
+            <input type="file" name="variants[${variantIndex}][gambar]" id="variant_gambar_input_${variantIndex}" class="form-control rounded-3 variant-image-input" accept="image/*" onchange="previewVariantImage(this, ${variantIndex})">
         </td>
         <td class="text-center pe-4">
             <button type="button" class="btn btn-outline-danger btn-sm border-0 rounded-circle p-2" onclick="removeVariantRow(${variantIndex})">
@@ -736,6 +741,39 @@ function removeSelectedFile(index) {
         updateFileInput(input);
     }
     renderPreviews();
+}
+
+function previewVariantImage(input, index) {
+    const previewDiv = document.getElementById(`variant_image_preview_${index}`);
+    if (!previewDiv) return;
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewDiv.style.setProperty('display', 'flex', 'important');
+            previewDiv.innerHTML = `
+                <div class="position-relative">
+                    <img src="${e.target.result}" class="rounded border" style="width: 38px; height: 38px; object-fit: cover;">
+                </div>
+                <div>
+                    <span class="badge bg-primary text-white px-2 py-1" style="font-size: 10px; font-weight: 500; display: inline-flex; align-items: center;">
+                        <i class="fas fa-file-image me-1"></i> Gambar Terpilih
+                    </span>
+                    <div class="text-muted mt-1" style="font-size: 9px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${input.files[0].name}
+                    </div>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        previewDiv.style.setProperty('display', 'flex', 'important');
+        previewDiv.innerHTML = `
+            <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 10px; font-weight: 500; display: inline-flex; align-items: center;">
+                <i class="fas fa-image-slash me-1"></i> Belum Ada Gambar
+            </span>
+        `;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {

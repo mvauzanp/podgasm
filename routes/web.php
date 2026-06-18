@@ -138,6 +138,8 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('categories', CategoryController::class)->except(['show']);
 
         // Manajemen Produk
+        Route::get('products/template', [ProductController::class, 'downloadTemplate'])->name('products.template');
+        Route::post('products/import', [ProductController::class, 'import'])->name('products.import');
         Route::resource('products', ProductController::class)->except(['show']);
 
         // Manajemen Barang Masuk (Restock)
@@ -163,7 +165,7 @@ Route::middleware(['auth', 'role:admin'])
         // Algoritma Safety Stock
         Route::controller(SafetyStockController::class)->group(function () {
             Route::get('/safety-stock', 'index')->name('ss.index');
-            Route::post('/safety-stock/calculate/{id}', 'calculate')->name('ss.calculate');
+            Route::post('/safety-stock/calculate', 'calculate')->name('ss.calculate');
         });
 
         // Manajemen Permintaan Stok Cabang (Approval)

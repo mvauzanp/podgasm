@@ -5,9 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use App\Enums\OrderStatus;
+use App\Services\OrderService;
 
 class OrderController extends Controller
 {
+    protected $orderService;
+
+    public function __construct(OrderService $orderService)
+    {
+        $this->orderService = $orderService;
+    }
+
     /**
      * Menampilkan semua pesanan dari semua customer
      */
@@ -16,11 +25,11 @@ class OrderController extends Controller
         $activeType = $request->input('type', 'b2c');
 
         // Hitung jumlah pesanan yang belum diproses (pending / pending_payment)
-        $unprocessedB2CCount = Order::whereIn('status', ['pending', 'pending_payment'])
+        $unprocessedB2CCount = Order::whereIn('status', [OrderStatus::PENDING, OrderStatus::PENDING_PAYMENT])
             ->where('metode_pembayaran', '!=', 'branch_request')
             ->count();
             
-        $unprocessedB2BCount = Order::whereIn('status', ['pending', 'pending_payment'])
+        $unprocessedB2BCount = Order::whereIn('status', [OrderStatus::PENDING, OrderStatus::PENDING_PAYMENT])
             ->where('metode_pembayaran', 'branch_request')
             ->count();
 
@@ -70,42 +79,36 @@ class OrderController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
+        $allowedStatuses = implode(',', array_column(OrderStatus::cases(), 'value'));
         $request->validate([
-            'status' => 'required|in:pending,pending_payment,paid,shipped,completed,cancelled'
+            'status' => 'required|in:' . $allowedStatuses
         ]);
 
         try {
             $order = Order::findOrFail($id);
+            $newStatus = OrderStatus::from($request->status);
 
             // B2C: Jika status sebelumnya pending_payment dan disetujui (paid/shipped/completed),
             // jalankan confirmPayment() untuk memotong stok.
-            if ($order->status === 'pending_payment' && in_array($request->status, ['paid', 'shipped', 'completed'])) {
-                if (!$order->confirmPayment()) {
+            if ($order->isPendingPayment() && in_array($newStatus, [OrderStatus::PAID, OrderStatus::SHIPPED, OrderStatus::COMPLETED])) {
+                if (!$this->orderService->confirmPayment($order)) {
                     return redirect()->back()->withErrors(['msg' => 'Gagal mengonfirmasi pembayaran: Stok gudang pusat tidak mencukupi.']);
                 }
             } else {
-                $order->update(['status' => $request->status]);
+                $order->update(['status' => $newStatus->value]);
             }
 
-            // Kirim Notifikasi Update Status
-            $statusLabels = [
-                'pending' => 'menunggu pembayaran',
-                'pending_payment' => 'menunggu pembayaran',
-                'paid' => 'telah dikonfirmasi dan sedang diproses',
-                'processing' => 'sedang diproses',
-                'shipped' => 'sedang dalam pengiriman',
-                'delivered' => 'telah sampai tujuan',
-                'completed' => 'telah selesai',
-                'cancelled' => 'dibatalkan'
-            ];
-
-            $label = $statusLabels[$request->status] ?? $request->status;
-            
+            // Kirim Notifikasi Update Status dengan label Enum
+            $label = strtolower($newStatus->label());
             $order->user->notify(new \App\Notifications\OrderStatusNotification($order, 'Status pesanan Anda telah diperbarui menjadi: ' . $label . '.'));
 
-            return redirect()->back()->with('success', 'Status pesanan berhasil diubah menjadi: ' . ucfirst($request->status));
+            return redirect()->back()->with('success', 'Status pesanan berhasil diubah menjadi: ' . $newStatus->label());
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['msg' => 'Gagal update status: ' . $e->getMessage()]);
+            \Illuminate\Support\Facades\Log::error('Error updating status for Order ID ' . $id . ': ' . $e->getMessage(), [
+                'exception' => $e,
+                'status' => $request->status
+            ]);
+            return redirect()->back()->withErrors(['msg' => 'Gagal memperbarui status pesanan: Terjadi kesalahan sistem.']);
         }
     }
 

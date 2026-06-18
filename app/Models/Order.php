@@ -26,6 +26,7 @@ class Order extends Model
         'status'
     ];
 
+
     public function user() {
         return $this->belongsTo(User::class);
     }
@@ -36,124 +37,73 @@ class Order extends Model
     }
 
     /**
-     * ✅ PERBAIKAN #4: Konfirmasi pembayaran dan kurangi stok
-     * Hanya bisa dipanggil saat status = pending_payment
+     * Konfirmasi pembayaran dan kurangi stok
      * 
      * @return bool true jika sukses, false jika gagal
      */
     public function confirmPayment()
     {
-        // Validasi status
-        if ($this->status !== 'pending_payment') {
-            return false;
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // 1. Update status ke 'paid' (pembayaran sudah dikonfirmasi)
-            $this->update(['status' => 'paid']);
-
-            // 2. Kurangi stok untuk setiap item dalam order dengan Pessimistic Locking
-            foreach ($this->items as $orderItem) {
-                // Gunakan lockForUpdate untuk mencegah race condition
-                $product = Product::where('id', $orderItem->product_id)->lockForUpdate()->firstOrFail();
-                
-                if ($orderItem->product_variant_id) {
-                    $variant = ProductVariant::where('id', $orderItem->product_variant_id)->lockForUpdate()->firstOrFail();
-                    if ($variant->stok_aktual < $orderItem->quantity) {
-                        DB::rollBack();
-                        return false;
-                    }
-                    
-                    // Kurangi stok varian dan stok produk induk
-                    $variant->decrement('stok_aktual', $orderItem->quantity);
-                    $product->decrement('stok_aktual', $orderItem->quantity);
-                } else {
-                    // ✅ Validasi stok cukup (safety check terakhir)
-                    if ($product->stok_aktual < $orderItem->quantity) {
-                        DB::rollBack();
-                        return false;
-                    }
-                    
-                    // Kurangi stok produk induk
-                    $product->decrement('stok_aktual', $orderItem->quantity);
-                }
-
-                // 3. Catat mutasi penjualan ke tabel transactions (Tinjauan Arsitektur Poin 2)
-                Transaction::create([
-                    'product_id'   => $orderItem->product_id,
-                    'jumlah'       => $orderItem->quantity,
-                    'total_harga'  => $orderItem->price * $orderItem->quantity,
-                    'jenis'        => 'keluar',
-                    'tanggal'      => now()
-                ]);
-            }
-
-            DB::commit();
-            
-            // Kirim Notifikasi Pembayaran Berhasil
-            $this->user->notify(new \App\Notifications\OrderStatusNotification($this, 'Pembayaran untuk pesanan Anda telah berhasil dikonfirmasi dan pesanan sedang diproses.'));
-
-            return true;
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return false;
-        }
+        return app(\App\Services\OrderService::class)->confirmPayment($this);
     }
 
     /**
-     * ✅ PERBAIKAN #4: Batalkan order jika pembayaran belum dikonfirmasi
-     * Hanya bisa dibatalkan saat status = pending_payment
-     * Stock tidak berkurang karena belum dikurangi dari awal
+     * Batalkan order jika pembayaran belum dikonfirmasi
      * 
      * @return bool true jika sukses, false jika gagal
      */
     public function cancelOrder()
     {
-        // Hanya bisa membatalkan order yang menunggu pembayaran
-        if ($this->status !== 'pending_payment') {
-            return false;
-        }
-
-        try {
-            // Update status ke 'cancelled'
-            $this->update(['status' => 'cancelled']);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
+        return app(\App\Services\OrderService::class)->cancelOrder($this);
     }
 
     /**
-     * ✅ Check apakah order sudah dibayar
+     * Check apakah order sudah dibayar
      * 
      * @return bool
      */
     public function isPaid()
     {
-        return $this->status === 'paid';
+        $statusVal = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $statusVal === \App\Enums\OrderStatus::PAID->value || $statusVal === 'paid';
     }
 
     /**
-     * ✅ Check apakah order masih menunggu pembayaran
+     * Check apakah order masih menunggu pembayaran
      * 
      * @return bool
      */
     public function isPendingPayment()
     {
-        return $this->status === 'pending_payment';
+        $statusVal = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $statusVal === \App\Enums\OrderStatus::PENDING_PAYMENT->value || $statusVal === 'pending_payment';
     }
 
     /**
-     * ✅ Check apakah order telah dibatalkan
+     * Check apakah order telah dibatalkan
      * 
      * @return bool
      */
     public function isCancelled()
     {
-        return $this->status === 'cancelled';
+        $statusVal = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $statusVal === \App\Enums\OrderStatus::CANCELLED->value || $statusVal === 'cancelled';
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::deleting(function ($order) {
+            if ($order->isForceDeleting()) {
+                $order->items()->forceDelete();
+            } else {
+                $order->items()->delete();
+            }
+        });
+        
+        static::restoring(function ($order) {
+            $order->items()->restore();
+        });
     }
 
     /**

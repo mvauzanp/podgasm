@@ -4,14 +4,17 @@
 <div class="container-fluid">
 
     {{-- HEADER --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <h4 class="fw-bold m-0 text-dark">
             <i class="fas fa-chart-line me-2 text-primary"></i>
-            Optimasi Stok &amp; Safety Stock
+            Optimasi Stok &amp; Safety Stock (Tingkat Varian)
         </h4>
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-bold">
-            Metode Safety Stock
-        </span>
+        <form action="{{ route('admin.ss.calculate') }}" method="POST">
+            @csrf
+            <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm transition-all hover-scale">
+                <i class="fas fa-sync me-2"></i> Sinkronkan Sekarang
+            </button>
+        </form>
     </div>
 
     {{-- BANNER FORMULA SAFETY STOCK --}}
@@ -22,9 +25,9 @@
                     <i class="fas fa-chart-bar fa-2x"></i>
                 </div>
                 <div>
-                    <h5 class="fw-bold mb-2">Safety Stock Statistik &amp; Analisis ABC (Bebas ROP)</h5>
+                    <h5 class="fw-bold mb-2">Safety Stock Statistik &amp; Analisis ABC Otomatis (SKU-Level)</h5>
                     <p class="mb-3 opacity-90 fs-6">
-                        Sistem mengklasifikasikan produk secara otomatis dengan **Analisis ABC** (berdasarkan volume penjualan 30 hari terakhir) untuk menentukan **Service Level** optimal, lalu menghitung **Safety Stock** menggunakan deviasi standar penjualan harian.
+                        Sistem mengklasifikasikan produk dan variasi secara otomatis dengan **Analisis ABC** (berdasarkan volume penjualan 30 hari terakhir) untuk menentukan **Service Level** optimal, lalu menghitung **Safety Stock** menggunakan deviasi standar penjualan harian dan Lead Time rata-rata (default: 3 hari).
                     </p>
                     <div class="bg-white bg-opacity-10 p-3 rounded-3 border border-white border-opacity-10 d-inline-block">
                         <span class="badge bg-light text-dark me-2 fw-bold">Rumus Statistik</span>
@@ -76,9 +79,19 @@
     </div>
     @endif
 
+    @if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show mb-4 shadow-sm" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-circle me-2 fs-5"></i>
+            <div>{{ $errors->first() }}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-header bg-white border-0 py-3">
-            <h6 class="m-0 fw-bold text-dark">Daftar Produk &amp; Stok Pengaman</h6>
+            <h6 class="m-0 fw-bold text-dark">Daftar Produk &amp; Stok Pengaman Varian</h6>
         </div>
         <div class="table-responsive">
             <table class="table align-middle mb-0 table-hover">
@@ -86,88 +99,123 @@
                 {{-- HEADER --}}
                 <thead class="bg-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4" style="min-width: 180px;">Produk</th>
+                        <th class="ps-4" style="min-width: 200px;">Produk / Varian</th>
                         <th class="text-center">Stok Aktual</th>
-                        <th class="text-center" style="width: 150px;">Avg Lead Time (Hari)</th>
+                        <th class="text-center">Lead Time</th>
                         <th class="text-center">Kelas ABC</th>
                         <th class="text-center">Tingkat Pelayanan (Z)</th>
                         <th class="text-center">Deviasi Penjualan (&sigma;)</th>
-                        <th class="text-center">Safety Stock (SS)</th>
-                        <th class="text-center pe-4" style="width: 120px;">Aksi</th>
+                        <th class="text-center" style="width: 150px;">Safety Stock (SS)</th>
                     </tr>
                 </thead>
 
                 <tbody>
                     @foreach($products as $pro)
-                    <form action="{{ route('admin.ss.calculate', $pro->id) }}" method="POST">
-                        @csrf
-                        <tr class="border-top">
+                        @if(!$pro->hasVariants())
+                            {{-- PRODUK SEDERHANA (TANPA VARIAN) --}}
+                            <tr class="border-top">
+                                <td class="ps-4">
+                                    <div class="fw-semibold text-dark">{{ $pro->nama_barang }}</div>
+                                    <small class="text-muted">
+                                        {{ $pro->category->nama_kategori ?? '-' }}
+                                    </small>
+                                </td>
 
-                            {{-- PRODUK --}}
-                            <td class="ps-4">
-                                <div class="fw-semibold text-dark">{{ $pro->nama_barang }}</div>
-                                <small class="text-muted">
-                                    {{ $pro->category->nama_kategori ?? '-' }}
-                                </small>
-                            </td>
+                                <td class="text-center">
+                                    <span class="fw-bold fs-6 {{ $pro->stok_aktual <= ($pro->nilai_ss ?? 0) ? 'text-danger bg-danger-subtle px-2 py-1 rounded' : 'text-success bg-success-subtle px-2 py-1 rounded' }}">
+                                        {{ $pro->stok_aktual }}
+                                    </span>
+                                </td>
 
-                            {{-- STOK --}}
-                            <td class="text-center">
-                                <span class="fw-bold fs-6 {{ $pro->stok_aktual <= ($pro->nilai_ss ?? 0) ? 'text-danger bg-danger-subtle px-2 py-1 rounded' : 'text-success bg-success-subtle px-2 py-1 rounded' }}">
-                                    {{ $pro->stok_aktual }}
-                                </span>
-                            </td>
+                                <td class="text-center fw-semibold text-dark">
+                                    {{ $pro->lead_time ?? 3 }} hari
+                                </td>
 
-                            {{-- INPUT LEAD TIME --}}
-                            <td>
-                                <div class="input-group input-group-sm">
-                                    <input type="number" name="lead_time"
-                                           class="form-control text-center fw-semibold"
-                                           value="{{ $pro->lead_time ?? 1 }}" min="0" step="0.01" required>
-                                </div>
-                            </td>
+                                <td class="text-center">
+                                    @if($pro->abc_class === 'A')
+                                        <span class="badge bg-danger px-3 py-2 rounded">Kelas A</span>
+                                    @elseif($pro->abc_class === 'B')
+                                        <span class="badge bg-warning text-dark px-3 py-2 rounded">Kelas B</span>
+                                    @else
+                                        <span class="badge bg-info text-white px-3 py-2 rounded">Kelas C</span>
+                                    @endif
+                                </td>
 
-                            {{-- KELAS ABC --}}
-                            <td class="text-center">
-                                @if($pro->abc_class === 'A')
-                                    <span class="badge bg-danger px-3 py-2 rounded">Kelas A</span>
-                                @elseif($pro->abc_class === 'B')
-                                    <span class="badge bg-warning text-dark px-3 py-2 rounded">Kelas B</span>
-                                @else
-                                    <span class="badge bg-info text-white px-3 py-2 rounded">Kelas C</span>
-                                @endif
-                            </td>
+                                <td class="text-center">
+                                    <span class="fw-bold text-dark">{{ $pro->service_level }}</span>
+                                    <small class="text-muted d-block">Z = {{ $pro->z_score }}</small>
+                                </td>
 
-                            {{-- SERVICE LEVEL (Z-SCORE) --}}
-                            <td class="text-center">
-                                <span class="fw-bold text-dark">{{ $pro->service_level }}</span>
-                                <small class="text-muted d-block">Z = {{ $pro->z_score }}</small>
-                            </td>
+                                <td class="text-center">
+                                    <span class="fw-semibold text-dark fs-6">{{ $pro->std_dev_30d ?? 0 }}</span>
+                                    <small class="text-muted d-block">unit/hari</small>
+                                </td>
 
-                            {{-- DEV SALES DISPLAY --}}
-                            <td class="text-center">
-                                <span class="fw-semibold text-dark fs-6">{{ $pro->std_dev_30d ?? 0 }}</span>
-                                <small class="text-muted d-block">unit/hari</small>
-                            </td>
+                                <td class="text-center">
+                                    <span class="badge px-3 py-2 rounded-pill fs-6 
+                                        {{ ($pro->nilai_ss ?? 0) > 0 ? 'bg-success text-white' : 'bg-secondary text-white' }}">
+                                        {{ $pro->nilai_ss ?? 0 }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @else
+                            {{-- PRODUK BERVARIAN --}}
+                            <tr class="table-light">
+                                <td colspan="7" class="ps-4 fw-bold text-dark">
+                                    <i class="fas fa-box text-muted me-2"></i> {{ $pro->nama_barang }}
+                                    <small class="text-muted fw-normal ms-2">
+                                        ({{ $pro->category->nama_kategori ?? '-' }} &bull; {{ $pro->variants->count() }} Varian)
+                                    </small>
+                                </td>
+                            </tr>
+                            @foreach($pro->variants as $var)
+                                <tr class="border-top">
+                                    <td class="ps-5 text-muted">
+                                        <span class="d-inline-block me-2">&mdash;</span> {{ $var->nama_varian }}
+                                        @if($var->kode_barang)
+                                            <small class="text-muted d-block ps-3">SKU: {{ $var->kode_barang }}</small>
+                                        @endif
+                                    </td>
 
-                            {{-- HASIL SAFETY STOCK --}}
-                            <td class="text-center">
-                                <span class="badge px-3 py-2 rounded-pill fs-6 
-                                    {{ ($pro->nilai_ss ?? 0) > 0 ? 'bg-success text-white' : 'bg-secondary text-white' }}">
-                                    {{ $pro->nilai_ss ?? 0 }}
-                                </span>
-                            </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold fs-6 {{ $var->stok_aktual <= ($var->nilai_ss ?? 0) ? 'text-danger bg-danger-subtle px-2 py-1 rounded' : 'text-success bg-success-subtle px-2 py-1 rounded' }}">
+                                            {{ $var->stok_aktual }}
+                                        </span>
+                                    </td>
 
-                            {{-- AKSI --}}
-                            <td class="text-center pe-4">
-                                <button type="submit" 
-                                        class="btn btn-primary btn-sm px-3 rounded-pill shadow-sm transition-all hover-scale">
-                                    <i class="fas fa-calculator me-1"></i> Hitung
-                                </button>
-                            </td>
+                                    <td class="text-center fw-semibold text-dark">
+                                        {{ $var->lead_time ?? 3 }} hari
+                                    </td>
 
-                        </tr>
-                    </form>
+                                    <td class="text-center">
+                                        @if($var->abc_class === 'A')
+                                            <span class="badge bg-danger px-3 py-2 rounded">Kelas A</span>
+                                        @elseif($var->abc_class === 'B')
+                                            <span class="badge bg-warning text-dark px-3 py-2 rounded">Kelas B</span>
+                                        @else
+                                            <span class="badge bg-info text-white px-3 py-2 rounded">Kelas C</span>
+                                        @endif
+                                    </td>
+
+                                    <td class="text-center">
+                                        <span class="fw-bold text-dark">{{ $var->service_level }}</span>
+                                        <small class="text-muted d-block">Z = {{ $var->z_score }}</small>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <span class="fw-semibold text-dark fs-6">{{ $var->std_dev_30d ?? 0 }}</span>
+                                        <small class="text-muted d-block">unit/hari</small>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <span class="badge px-3 py-2 rounded-pill fs-6 
+                                            {{ ($var->nilai_ss ?? 0) > 0 ? 'bg-success text-white' : 'bg-secondary text-white' }}">
+                                            {{ $var->nilai_ss ?? 0 }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @endif
                     @endforeach
                 </tbody>
 
