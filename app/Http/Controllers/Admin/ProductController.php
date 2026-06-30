@@ -26,12 +26,23 @@ class ProductController extends Controller
         $query = Product::with('category');
 
         // Fitur Search (biar admin gampang cari barang)
-        if ($request->has('search')) {
+        if ($request->has('search') && !empty($request->search)) {
             $query->where('nama_barang', 'like', '%' . $request->search . '%');
         }
 
+        // Hitung statistik keseluruhan (sebelum dipaginasi)
+        $totalProductsCount = Product::count();
+        $lowStockCount = Product::whereRaw('stok_aktual <= nilai_ss')->count();
+        $safeStockCount = Product::whereRaw('stok_aktual > nilai_ss')->count();
+
         $products = $query->latest()->paginate(10);
-        return view('pages.admin.products.index', compact('products'));
+        
+        return view('pages.admin.products.index', compact(
+            'products',
+            'totalProductsCount',
+            'lowStockCount',
+            'safeStockCount'
+        ));
     }
 
     public function create()

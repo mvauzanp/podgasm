@@ -42,7 +42,7 @@
 
                         <div>
                             <p class="text-muted mb-1">Total Produk</p>
-                            <h3 class="fw-bold mb-0">{{ $products->count() }}</h3>
+                            <h3 class="fw-bold mb-0">{{ $totalProductsCount }}</h3>
                         </div>
 
                         <div class="bg-primary bg-opacity-10 p-3 rounded-4">
@@ -64,7 +64,7 @@
                         <div>
                             <p class="text-muted mb-1">Stok Menipis</p>
                             <h3 class="fw-bold text-danger mb-0">
-                                {{ $products->where('stok_aktual', '<=', 'nilai_ss')->count() }}
+                                {{ $lowStockCount }}
                             </h3>
                         </div>
 
@@ -87,7 +87,7 @@
                         <div>
                             <p class="text-muted mb-1">Stok Aman</p>
                             <h3 class="fw-bold text-success mb-0">
-                                {{ $products->where('stok_aktual', '>', 'nilai_ss')->count() }}
+                                {{ $safeStockCount }}
                             </h3>
                         </div>
 
@@ -131,6 +131,8 @@
                             </span>
 
                             <input type="text"
+                                   name="search"
+                                   value="{{ request('search') }}"
                                    class="form-control border-0 bg-light rounded-end-4"
                                    placeholder="Cari produk...">
 
