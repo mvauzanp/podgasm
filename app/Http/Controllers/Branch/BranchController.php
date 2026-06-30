@@ -48,6 +48,17 @@ class BranchController extends Controller
                 return back()->withInput()->withErrors(['msg' => 'Pilihan produk tidak valid.']);
             }
 
+            // Cek duplikasi permintaan pending yang serupa
+            $existing = StockRequest::where('user_id', Auth::id())
+                ->where('product_id', $productId)
+                ->where('product_variant_id', $variantId)
+                ->where('status', 'Pending')
+                ->first();
+
+            if ($existing) {
+                return back()->withInput()->withErrors(['msg' => 'Permintaan pending untuk produk ini sudah dikirim sebelumnya. Silakan tunggu konfirmasi admin.']);
+            }
+
             StockRequest::create([
                 'product_id' => $productId, 
                 'product_variant_id' => $variantId,

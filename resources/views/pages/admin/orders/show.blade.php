@@ -106,7 +106,40 @@
                             <span class="badge bg-info px-3 py-2 rounded-pill fw-bold text-white">{{ strtoupper($order->metode_pembayaran) }}</span>
                         </td>
                     </tr>
+                    @if($order->kurir)
+                    <tr>
+                        <td class="fw-bold text-muted small">Kurir / Layanan</td>
+                        <td>
+                            <span class="badge bg-secondary px-3 py-2 rounded-pill fw-bold text-white text-uppercase">{{ $order->kurir }} - {{ $order->layanan }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold text-muted small">Ongkos Kirim</td>
+                        <td class="fw-bold text-dark">Rp {{ number_format($order->ongkir, 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold text-muted small">No. Resi (Waybill)</td>
+                        <td class="fw-bold text-primary font-monospace">{{ $order->resi ?? 'Belum ada resi' }}</td>
+                    </tr>
+                    @if($order->biteship_order_id)
+                    <tr>
+                        <td class="fw-bold text-muted small">Biteship Order ID</td>
+                        <td class="small text-muted font-monospace">{{ $order->biteship_order_id }}</td>
+                    </tr>
+                    @endif
+                    @endif
                 </table>
+
+                @if($order->status == 'paid' && !$order->biteship_order_id && $order->metode_pembayaran !== 'branch_request')
+                    <div class="mt-4 border-top pt-3">
+                        <form action="{{ route('admin.orders.ship', $order->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-success w-100 fw-bold py-2 rounded-3 shadow-sm">
+                                <i class="fas fa-paper-plane me-2"></i> Kirim ke Biteship (Request Pickup)
+                            </button>
+                        </form>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -162,7 +195,7 @@
                 </table>
             </div>
         </div>
-    </div>/div>
+    </div>
 
         @if($order->metode_pembayaran === 'branch_request')
             </form>

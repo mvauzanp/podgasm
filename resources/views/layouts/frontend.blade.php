@@ -91,9 +91,9 @@
 
         /* ================= BUTTON (BRAND THEMED) ================= */
         :root {
-            --brand-color: #2596be;
-            --brand-gradient: linear-gradient(135deg, #2596be 0%, #00d4ff 100%);
-            --brand-hover: #1e7ba0;
+            --brand-color: #09afb9;
+            --brand-gradient: linear-gradient(135deg, #09afb9 0%, #00d4ff 100%);
+            --brand-hover: #078991;
         }
 
         .text-primary {
@@ -111,14 +111,14 @@
             padding: 10px 18px !important;
             font-weight: 600 !important;
             color: white !important;
-            box-shadow: 0 4px 14px rgba(37, 150, 190, 0.25) !important;
+            box-shadow: 0 4px 14px rgba(9, 175, 185, 0.25) !important;
             transition: all 0.25s ease !important;
         }
 
         .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-            background: linear-gradient(135deg, #1d7b9e 0%, #00bfe6 100%) !important;
+            background: linear-gradient(135deg, #078991 0%, #00b4d8 100%) !important;
             transform: translateY(-2px) !important;
-            box-shadow: 0 6px 18px rgba(37, 150, 190, 0.4) !important;
+            box-shadow: 0 6px 18px rgba(9, 175, 185, 0.4) !important;
             color: white !important;
         }
 
@@ -183,7 +183,7 @@
         .form-control:focus,
         .form-select:focus{
             border-color: var(--brand-color) !important;
-            box-shadow: 0 0 0 0.15rem rgba(37, 150, 190, 0.15) !important;
+            box-shadow: 0 0 0 0.15rem rgba(9, 175, 185, 0.15) !important;
         }
 
         .form-check-input:checked {

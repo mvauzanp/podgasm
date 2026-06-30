@@ -146,10 +146,16 @@ class OrderController extends Controller
         $order = Order::with(['items.product', 'items.variant'])
                     ->where('user_id', auth()->id())
                     ->findOrFail($id);
+
+        $trackingData = null;
+        if ($order->resi && $order->kurir) {
+            $biteship = app(\App\Services\BiteshipService::class);
+            $trackingData = $biteship->getTracking($order->resi, $order->kurir);
+        }
                     
         $cartCount = Cart::where('user_id', Auth::id())->first()?->items()->sum('quantity') ?? 0;
         $wishlistCount = session()->get('wishlist') ? count(session()->get('wishlist')) : 0;
 
-        return view('pages.frontend.tracking', compact('order', 'cartCount', 'wishlistCount'));
+        return view('pages.frontend.tracking', compact('order', 'cartCount', 'wishlistCount', 'trackingData'));
     }
 }

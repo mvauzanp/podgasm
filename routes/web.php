@@ -6,6 +6,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\ShippingController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\B2BRegistrationController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\ProductController;
@@ -76,10 +79,12 @@ Route::middleware(['auth'])
 */
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
-    Route::post('/checkout/apply-voucher', [CartController::class, 'applyVoucher'])->name('cart.applyVoucher');
-    Route::post('/checkout/remove-voucher', [CartController::class, 'removeVoucher'])->name('cart.removeVoucher');
-    Route::post('/checkout/process', [CartController::class, 'processCheckout'])->name('cart.processCheckout');
+    Route::get('/checkout', [CheckoutController::class, 'checkout'])->name('cart.checkout');
+    Route::post('/checkout/apply-voucher', [CheckoutController::class, 'applyVoucher'])->name('cart.applyVoucher');
+    Route::post('/checkout/remove-voucher', [CheckoutController::class, 'removeVoucher'])->name('cart.removeVoucher');
+    Route::post('/checkout/process', [CheckoutController::class, 'processCheckout'])->name('cart.processCheckout');
+    Route::get('/shipping/search-areas', [ShippingController::class, 'searchShippingAreas'])->name('shipping.searchAreas');
+    Route::post('/shipping/rates', [ShippingController::class, 'getShippingRates'])->name('shipping.rates');
     Route::get('/history', [OrderController::class, 'history'])->name('order.history');
     Route::get('/history/{id}', [OrderController::class, 'show'])->name('order.show');
     
@@ -110,11 +115,11 @@ Route::middleware(['auth'])
     ->prefix('wishlist')
     ->name('wishlist.')
     ->group(function () {
-        Route::get('/', [CartController::class, 'wishlist'])->name('index');
-        Route::post('/add/{id}', [CartController::class, 'addToWishlist'])->name('add');
-        Route::get('/add/{id}', [CartController::class, 'addToWishlist']); // backward compatibility
-        Route::post('/remove/{id}', [CartController::class, 'removeFromWishlist'])->name('remove');
-        Route::delete('/remove/{id}', [CartController::class, 'removeFromWishlist']);
+        Route::get('/', [WishlistController::class, 'wishlist'])->name('index');
+        Route::post('/add/{id}', [WishlistController::class, 'addToWishlist'])->name('add');
+        Route::get('/add/{id}', [WishlistController::class, 'addToWishlist']); // backward compatibility
+        Route::post('/remove/{id}', [WishlistController::class, 'removeFromWishlist'])->name('remove');
+        Route::delete('/remove/{id}', [WishlistController::class, 'removeFromWishlist']);
     });
 
 /*
@@ -185,6 +190,7 @@ Route::middleware(['auth', 'role:admin'])
             Route::get('/orders', 'index')->name('orders.index');
             Route::get('/orders/{id}', 'show')->name('orders.show');
             Route::post('/orders/{id}/status', 'updateStatus')->name('orders.updateStatus');
+            Route::post('/orders/{id}/ship', 'shipWithBiteship')->name('orders.ship');
             Route::get('/orders/export/csv', 'exportCSV')->name('orders.exportCSV');
         });
 

@@ -14,17 +14,100 @@
                 </div>
             </div>
 
+            {{-- Categories Circular Grid (Inspired by Vapehan) --}}
+            <div class="row mb-4 mt-2">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-4 p-4">
+                        <h5 class="fw-bold mb-4 text-dark d-flex align-items-center gap-2">
+                            <i class="fas fa-th-large" style="color: #09afb9;"></i> Jelajahi Kategori
+                        </h5>
+                        <div class="d-flex gap-4 overflow-x-auto pb-2 scrollbar-hidden justify-content-start justify-content-md-center">
+                            @foreach($categories->where('parent_id', null) as $cat)
+                                @php
+                                    // Icon mapping based on categories
+                                    $icon = 'fas fa-box';
+                                    $bgGradient = 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)';
+                                    $iconColor = '#0284c7';
+                                    
+                                    switch($cat->slug) {
+                                        case 'liquid':
+                                            $icon = 'fas fa-flask';
+                                            $bgGradient = 'linear-gradient(135deg, rgba(9, 175, 185, 0.08) 0%, rgba(0, 228, 255, 0.08) 100%)';
+                                            $iconColor = '#09afb9';
+                                            break;
+                                        case 'pod':
+                                            $icon = 'fas fa-plug';
+                                            $bgGradient = 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)';
+                                            $iconColor = '#ea580c';
+                                            break;
+                                        case 'mod':
+                                            $icon = 'fas fa-cube';
+                                            $bgGradient = 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)';
+                                            $iconColor = '#7c3aed';
+                                            break;
+                                        case 'atomizer':
+                                            $icon = 'fas fa-atom';
+                                            $bgGradient = 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)';
+                                            $iconColor = '#e11d48';
+                                            break;
+                                        case 'accessories':
+                                            $icon = 'fas fa-tools';
+                                            $bgGradient = 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)';
+                                            $iconColor = '#0d9488';
+                                            break;
+                                        default:
+                                            $icon = 'fas fa-box-open';
+                                            $bgGradient = 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)';
+                                            $iconColor = '#64748b';
+                                            break;
+                                    }
+                                @endphp
+                                <a href="{{ route('public.category', $cat->slug) }}" class="text-decoration-none text-center d-flex flex-column align-items-center group shrink-0" style="width: 100px; transition: all 0.3s ease;">
+                                    <div class="category-circle d-flex align-items-center justify-content-center mb-2 shadow-sm" 
+                                         style="width: 70px; height: 70px; border-radius: 50%; background: {{ $bgGradient }}; color: {{ $iconColor }}; transition: all 0.3s ease; font-size: 1.6rem;">
+                                        <i class="{{ $icon }}"></i>
+                                    </div>
+                                    <span class="fw-bold text-dark text-uppercase tracking-wider" style="font-size: 0.72rem; transition: all 0.2s ease;">
+                                        {{ $cat->nama_kategori }}
+                                    </span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .category-circle {
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+                }
+                .category-circle:hover {
+                    transform: translateY(-5px) scale(1.05);
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+                }
+                .scrollbar-hidden::-webkit-scrollbar {
+                    display: none;
+                }
+                .scrollbar-hidden {
+                    -ms-overflow-style: none;  /* IE and Edge */
+                    scrollbar-width: none;  /* Firefox */
+                }
+                .group:hover span {
+                    color: #09afb9 !important;
+                }
+            </style>
+
             {{-- Header --}}
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold m-0 text-dark">Katalog Podgasm</h4>
                 <div class="dropdown">
                     <button class="btn btn-white border shadow-sm btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                        Urutkan: Terbaru
+                        Urutkan: {{ request('sort') === 'price_low' ? 'Harga Terendah' : (request('sort') === 'price_high' ? 'Harga Tertinggi' : 'Terbaru') }}
                     </button>
                     <ul class="dropdown-menu border-0 shadow">
-                        <li><a class="dropdown-item" href="?sort=newest">Terbaru</a></li>
-                        <li><a class="dropdown-item" href="?sort=price_low">Harga Terendah</a></li>
-                        <li><a class="dropdown-item" href="?sort=price_high">Harga Tertinggi</a></li>
+                        <li><a class="dropdown-item {{ request('sort', 'newest') === 'newest' ? 'active' : '' }}" href="?sort=newest">Terbaru</a></li>
+                        <li><a class="dropdown-item {{ request('sort') === 'price_low' ? 'active' : '' }}" href="?sort=price_low">Harga Terendah</a></li>
+                        <li><a class="dropdown-item {{ request('sort') === 'price_high' ? 'active' : '' }}" href="?sort=price_high">Harga Tertinggi</a></li>
                     </ul>
                 </div>
             </div>

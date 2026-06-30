@@ -119,6 +119,79 @@
                             @endforeach
                         @endif
                     </div>
+
+                    @if($trackingData && isset($trackingData['history']) && count($trackingData['history']) > 0)
+                        <div class="mt-4 pt-4 border-top">
+                            <h5 class="fw-bold mb-3"><i class="fas fa-shipping-fast text-primary me-2"></i> Detail Pengiriman Real-Time</h5>
+                            
+                            <div class="mb-4 p-3 bg-light rounded-3 small border-0">
+                                <div class="row g-2">
+                                    <div class="col-sm-6">
+                                        <span class="text-muted d-block">Layanan Kurir</span>
+                                        <strong class="text-uppercase text-dark">{{ $trackingData['courier']['name'] }} (Resi: {{ $trackingData['waybill_id'] }})</strong>
+                                    </div>
+                                    @if(isset($trackingData['driver']) && !empty($trackingData['driver']['name']))
+                                    <div class="col-sm-6 text-sm-end">
+                                        <span class="text-muted d-block">Petugas Kurir</span>
+                                        <strong class="text-dark">{{ $trackingData['driver']['name'] }} @if(isset($trackingData['driver']['phone'])) ({{ $trackingData['driver']['phone'] }}) @endif</strong>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <div class="tracking-history position-relative ms-2">
+                                <style>
+                                    .history-item {
+                                        position: relative;
+                                        padding-left: 30px;
+                                        margin-bottom: 25px;
+                                    }
+                                    .history-item::before {
+                                        content: '';
+                                        position: absolute;
+                                        left: 5px;
+                                        top: 10px;
+                                        bottom: -25px;
+                                        width: 1px;
+                                        border-left: 2px dashed #dee2e6;
+                                    }
+                                    .history-item:last-child::before {
+                                        display: none;
+                                    }
+                                    .history-marker {
+                                        position: absolute;
+                                        left: 0;
+                                        top: 5px;
+                                        width: 12px;
+                                        height: 12px;
+                                        border-radius: 50%;
+                                        background-color: #dee2e6;
+                                        border: 2px solid #fff;
+                                        box-shadow: 0 0 0 1px #dee2e6;
+                                    }
+                                    .history-item.latest .history-marker {
+                                        background-color: #198754;
+                                        box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.2);
+                                    }
+                                    .history-item.latest .history-content .note {
+                                        color: #198754 !important;
+                                        font-weight: bold;
+                                    }
+                                </style>
+                                @foreach($trackingData['history'] as $index => $history)
+                                    <div class="history-item {{ $index === 0 ? 'latest' : '' }}">
+                                        <div class="history-marker"></div>
+                                        <div class="history-content">
+                                            <div class="note text-dark small mb-1">{{ $history['note'] }}</div>
+                                            <span class="text-muted font-monospace" style="font-size: 0.75rem;">
+                                                {{ \Carbon\Carbon::parse($history['time'])->translatedFormat('d M Y, H:i') }} WIB
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 

@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'biteship' => [
+        'api_key' => env('BITESHIP_API_KEY'),
+        'origin_area_id' => env('BITESHIP_ORIGIN_AREA_ID', 'IDNP3CL10'), // default Jakarta Selatan
+        'origin_address' => env('BITESHIP_ORIGIN_ADDRESS', 'Gudang Pusat Podgasm, Jakarta Selatan'),
+        'origin_postal_code' => env('BITESHIP_ORIGIN_POSTAL_CODE', '12190'),
+        'origin_phone' => env('BITESHIP_ORIGIN_PHONE', '08123456789'),
+        'origin_name' => env('BITESHIP_ORIGIN_NAME', 'Podgasm Warehouse Admin'),
+    ],
+
 ];

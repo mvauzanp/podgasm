@@ -27,6 +27,21 @@ class AppServiceProvider extends ServiceProvider
         // Gunakan pagination bawaan Bootstrap 5
         Paginator::useBootstrapFive();
 
+        // Load persistent settings dari storage/app/settings.json
+        $settingsFile = storage_path('app/settings.json');
+        if (file_exists($settingsFile)) {
+            $settings = json_decode(file_get_contents($settingsFile), true);
+            if (is_array($settings)) {
+                foreach ($settings as $group => $values) {
+                    if (is_array($values)) {
+                        foreach ($values as $key => $value) {
+                            config([$group . '.' . $key => $value]);
+                        }
+                    }
+                }
+            }
+        }
+
         // Pastikan tidak error saat migrate atau running via terminal
         if (!app()->runningInConsole()) {
             

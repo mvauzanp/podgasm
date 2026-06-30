@@ -34,6 +34,21 @@ class User extends Authenticatable
         ];
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role === \App\Enums\UserRole::ADMIN->value;
+    }
+
+    public function isBranch(): bool
+    {
+        return $this->role === \App\Enums\UserRole::BRANCH->value;
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === \App\Enums\UserRole::CUSTOMER->value;
+    }
+
     public function orders()
     {
         return $this->hasMany(Order::class);

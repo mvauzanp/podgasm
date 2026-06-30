@@ -23,6 +23,12 @@ class Order extends Model
         'voucher_discount',
         'metode_pembayaran', 
         'alamat_pengiriman', 
+        'ongkir',
+        'kurir',
+        'layanan',
+        'resi',
+        'biteship_order_id',
+        'destination_area_id',
         'status'
     ];
 

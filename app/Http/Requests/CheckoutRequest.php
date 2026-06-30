@@ -50,6 +50,26 @@ class CheckoutRequest extends FormRequest
                 'string',
                 'in:cash,transfer,e-wallet,branch_request',
             ],
+            'destination_area_id' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'kurir' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'layanan' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'ongkir' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
         ];
     }
 

@@ -15,6 +15,7 @@ use App\Enums\OrderStatus;
 use App\Exceptions\BusinessException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class OrderService
 {
@@ -76,25 +77,20 @@ class OrderService
                             $voucher->decrement('quota');
                         }
                         
-                        // Catat ke usage history
-                        \App\Models\VoucherUsage::create([
-                            'user_id' => $user->id,
-                            'voucher_id' => $voucher->id,
-                            'discount_amount' => $discount,
-                            'used_at' => now(),
-                        ]);
+                        // VoucherUsage akan dicatat setelah Order berhasil disimpan
                     }
                 }
             }
 
-            $finalTotal = max(0, $total - $discount);
+            $ongkir = isset($data['ongkir']) ? (int) $data['ongkir'] : 0;
+            $finalTotal = max(0, $total - $discount) + $ongkir;
 
             // 3. Simpan data Order ke database
-            $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str_random(4));
+            $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
             
             // Generate unique invoice number
             while (Order::where('invoice_number', $invoiceNumber)->exists()) {
-                $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str_random(4));
+                $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
             }
 
             // Set status default ke PENDING_PAYMENT (Deferred Stock Decrement)
@@ -111,12 +107,25 @@ class OrderService
                 'voucher_discount' => $discount,
                 'metode_pembayaran' => $data['metode_pembayaran'],
                 'alamat_pengiriman' => $data['alamat_pengiriman'],
+                'ongkir' => $ongkir,
+                'kurir' => $data['kurir'] ?? null,
+                'layanan' => $data['layanan'] ?? null,
+                'destination_area_id' => $data['destination_area_id'] ?? null,
                 'status' => $orderStatus
             ]);
 
             // 4. Simpan ke order_items
             foreach ($orderItems as $oItem) {
                 $order->items()->create($oItem);
+            }
+
+            // Catat ke usage history jika ada voucher yang diterapkan
+            if (isset($voucher) && $discount > 0) {
+                \App\Models\VoucherUsage::create([
+                    'user_id' => $user->id,
+                    'voucher_id' => $voucher->id,
+                    'order_id' => $order->id,
+                ]);
             }
 
             // 5. Kosongkan keranjang belanja
@@ -203,14 +212,5 @@ class OrderService
 
             return true;
         });
-    }
-}
-
-/**
- * Helper Str_random yang aman.
- */
-if (!function_exists('Str_random')) {
-    function Str_random($length = 16) {
-        return \Illuminate\Support\Str::random($length);
     }
 }

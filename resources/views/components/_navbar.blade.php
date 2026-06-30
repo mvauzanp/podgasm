@@ -1,21 +1,21 @@
 {{-- NAVBAR UTAMA - MODERN AESTHETIC --}}
-<nav class="navbar navbar-expand-lg navbar-light sticky-top" style="position: fixed; top: 0; left: 0; right: 0; z-index: 9999; width: 100%; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 1rem 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+<nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="position: fixed; top: 0; left: 0; right: 0; z-index: 9999; width: 100%; background: linear-gradient(135deg, rgba(9, 175, 185, 0.96) 0%, rgba(7, 137, 145, 0.96) 100%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 0.85rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 6px 20px rgba(0,0,0,0.1);">
     <div class="container">
         {{-- LEFT: Burger & Brand --}}
-        <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-light me-1 navbar-burger" type="button" data-bs-toggle="offcanvas" data-bs-target="#categoryCanvas" style="border: none; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
-                <i class="fas fa-bars" style="color: #2596be;"></i>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-light navbar-burger" type="button" data-bs-toggle="offcanvas" data-bs-target="#categoryCanvas" style="border: 1px solid rgba(255,255,255,0.8); width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <i class="fas fa-bars" style="color: #09afb9; font-size: 1.1rem;"></i>
             </button>
-            <a class="navbar-brand d-flex align-items-center mb-0 ms-3" href="{{ route('home') }}">
-                <img src="{{ asset('PodgasmHome.png') }}" alt="Podgasm Logo" class="navbar-logo">
+            <a class="navbar-brand d-flex align-items-center mb-0 px-3 py-1 bg-white rounded-pill shadow-sm" href="{{ route('home') }}" style="transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.8); height: 46px; margin-left: 0 !important;">
+                <img src="{{ asset('PodgasmHome.png') }}" alt="Podgasm Logo" class="navbar-logo" style="height: 32px !important; width: auto; max-height: 32px !important; object-fit: contain;">
             </a>
         </div>
 
         {{-- CENTER: Search Bar --}}
         <form class="d-none d-lg-flex grow mx-4" action="{{ route('public.search') }}" method="GET" style="max-width: 400px;">
-            <div class="input-group" style="border-radius: 50px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <input type="text" class="form-control" placeholder="🔍 Cari device, liquid..." name="q" style="border: none; padding: 12px 18px; font-size: 0.95rem; background-color: rgba(255,255,255,0.95);">
-                <button class="btn" type="submit" style="background: linear-gradient(135deg, #2596be 0%, #00d4ff 100%); border: none; color: white; padding: 12px 18px; transition: all 0.3s ease;">
+            <div class="input-group search-input-wrapper">
+                <input type="text" class="form-control text-dark" placeholder="🔍 Cari device, liquid..." name="q" style="border: none; padding: 12px 18px; font-size: 0.95rem; background-color: rgba(255,255,255,0.95);">
+                <button class="btn" type="submit" style="background: #16213e; border: none; color: white; padding: 12px 18px; transition: all 0.3s ease;">
                     <i class="fas fa-search"></i>
                 </button>
             </div>
@@ -59,27 +59,27 @@
                         <small class="text-muted d-block" style="font-size: 0.8rem;">Login sebagai</small>
                         <span class="fw-bold text-primary" style="font-size: 1.1rem;">{{ auth()->user()->name }}</span>
                     </li>
-                    <li><a class="dropdown-item py-3 px-4" href="{{ route('profile.show') }}" style="transition: all 0.3s ease; border-radius: 0;"><i class="fas fa-user-circle me-3" style="color: #2596be; width: 20px;"></i> Profile</a></li>
-                    <li><a class="dropdown-item py-3 px-4" href="{{ route('order.history') }}" style="transition: all 0.3s ease; border-radius: 0;"><i class="fas fa-clock me-3" style="color: #2596be; width: 20px;"></i> Riwayat Belanja</a></li>
+                    <li><a class="dropdown-item py-3 px-4" href="{{ route('profile.show') }}" style="transition: all 0.3s ease; border-radius: 0;"><i class="fas fa-user-circle me-3" style="color: #09afb9; width: 20px;"></i> Profile</a></li>
+                    <li><a class="dropdown-item py-3 px-4" href="{{ route('order.history') }}" style="transition: all 0.3s ease; border-radius: 0;"><i class="fas fa-clock me-3" style="color: #09afb9; width: 20px;"></i> Riwayat Belanja</a></li>
                     <li><hr class="dropdown-divider my-2"></li>
                     <li><button class="dropdown-item py-3 px-4 text-danger w-100 text-start border-0 bg-transparent" onclick="document.getElementById('logoutForm').submit()" style="transition: all 0.3s ease;"><i class="fas fa-sign-out-alt me-3" style="width: 20px;"></i> Logout</button></li>
                 </ul>
             </div>
             @else
             <div class="ms-2">
-                <a href="/login" class="btn btn-sm rounded-pill px-4" style="background: linear-gradient(135deg, #2596be 0%, #00d4ff 100%); color: white; border: none; padding: 10px 20px !important; font-weight: 600; transition: all 0.3s ease;">Login</a>
+                <a href="/login" class="btn btn-sm rounded-pill px-4 navbar-login-btn" style="background: #ffffff; color: #09afb9 !important; border: none; padding: 10px 20px !important; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">Login</a>
             </div>
             @endauth
         </div>
     </div>
 
     {{-- COLLAPSIBLE MOBILE SEARCH BAR --}}
-    <div class="collapse d-lg-none w-100" id="mobileSearchCollapse" style="background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%); border-top: 1px solid rgba(255, 255, 255, 0.1);">
+    <div class="collapse d-lg-none w-100" id="mobileSearchCollapse" style="background: linear-gradient(135deg, #09afb9 0%, #078991 100%); border-top: 1px solid rgba(255, 255, 255, 0.1);">
         <div class="px-3 py-2">
             <form action="{{ route('public.search') }}" method="GET">
-                <div class="input-group" style="border-radius: 50px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.15);">
-                    <input type="text" class="form-control" placeholder="🔍 Cari device, liquid..." name="q" style="border: none; padding: 10px 18px; font-size: 0.9rem; background-color: rgba(255,255,255,0.95);">
-                    <button class="btn" type="submit" style="background: linear-gradient(135deg, #0d6efd 0%, #00d4ff 100%); border: none; color: white; padding: 10px 18px;">
+                <div class="input-group search-input-wrapper">
+                    <input type="text" class="form-control text-dark" placeholder="🔍 Cari device, liquid..." name="q" style="border: none; padding: 10px 18px; font-size: 0.9rem; background-color: rgba(255,255,255,0.95);">
+                    <button class="btn" type="submit" style="background: #16213e; border: none; color: white; padding: 10px 18px;">
                         <i class="fas fa-search"></i>
                     </button>
                 </div>
@@ -138,15 +138,14 @@
 
     // Navbar burger hover effect
     document.querySelector('.navbar-burger').addEventListener('mouseover', function() {
-        this.style.background = 'rgba(255,255,255,0.15)';
-        this.style.transform = 'scale(1.08)';
+        this.style.background = '#f1f5f9';
+        this.style.transform = 'scale(1.05)';
     });
     document.querySelector('.navbar-burger').addEventListener('mouseout', function() {
-        this.style.background = 'rgba(255,255,255,1)';
+        this.style.background = '#ffffff';
         this.style.transform = 'scale(1)';
     });
 
-    // Category menu interactivity
     document.querySelectorAll('.category-item').forEach(item => {
         item.addEventListener('click', function () {
             // Hapus status aktif dari semua item kiri
@@ -158,16 +157,16 @@
             });
 
             // Tambah status aktif ke yang baru saja diklik
-            this.style.background = 'linear-gradient(135deg, rgba(37, 150, 190, 0.1) 0%, rgba(0, 212, 255, 0.08) 100%)';
-            this.style.color = '#2596be';
-            this.style.borderLeft = '4px solid #2596be';
+            this.style.background = 'linear-gradient(135deg, rgba(9, 175, 185, 0.1) 0%, rgba(0, 228, 255, 0.08) 100%)';
+            this.style.color = '#09afb9';
+            this.style.borderLeft = '4px solid #09afb9';
             this.style.fontWeight = '700';
 
             const parentId = this.dataset.id;
             const parent = categoriesData.find(c => c.id == parentId);
             const children = categoriesData.filter(c => c.parent_id == parentId);
 
-            let html = `<h5 class="fw-bold mb-4 text-dark border-bottom pb-3" style="font-size: 1.2rem; color: #1a1a2e; border-color: rgba(37, 150, 190, 0.2) !important;">${parent.nama_kategori}</h5>`;
+            let html = `<h5 class="fw-bold mb-4 text-dark border-bottom pb-3" style="font-size: 1.2rem; color: #1a1a2e; border-color: rgba(9, 175, 185, 0.2) !important;">${parent.nama_kategori}</h5>`;
 
             if (children.length > 0) {
                 html += `<div class="row g-2">`;
@@ -185,7 +184,7 @@
                 html += `
                     <div class="text-center py-5">
                         <p class="text-muted">Tidak ada sub-kategori.</p>
-                        <a href="/category/${parent.slug}" class="btn btn-sm rounded-pill mt-2" style="background: linear-gradient(135deg, #2596be 0%, #00d4ff 100%); color: white; border: none; padding: 8px 20px; transition: all 0.3s ease;">Lihat Semua</a>
+                        <a href="/category/${parent.slug}" class="btn btn-sm rounded-pill mt-2" style="background: linear-gradient(135deg, #09afb9 0%, #00d4ff 100%); color: white; border: none; padding: 8px 20px; transition: all 0.3s ease;">Lihat Semua</a>
                     </div>`;
             }
 
@@ -194,9 +193,9 @@
             // Add hover effects to child items
             document.querySelectorAll('#childContainer a').forEach(link => {
                 link.addEventListener('mouseover', function() {
-                    this.style.background = 'rgba(37, 150, 190, 0.08)';
-                    this.style.borderLeft = '3px solid #2596be';
-                    this.style.color = '#2596be';
+                    this.style.background = 'rgba(9, 175, 185, 0.08)';
+                    this.style.borderLeft = '3px solid #09afb9';
+                    this.style.color = '#09afb9';
                 });
                 link.addEventListener('mouseout', function() {
                     this.style.background = 'transparent';
@@ -256,6 +255,34 @@
 </form>
 
 <style>
+    /* === LOGIN BUTTON HOVER === */
+    .navbar-login-btn:hover {
+        background-color: #f1f5f9 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    /* === MODERN SEARCH BOX FOCUS EFFECT === */
+    .search-input-wrapper {
+        border-radius: 50px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        background-color: rgba(255,255,255,0.95);
+    }
+    
+    .search-input-wrapper:focus-within {
+        border-color: #16213e !important;
+        box-shadow: 0 0 15px rgba(22, 33, 62, 0.3) !important;
+        transform: translateY(-1px);
+    }
+    
+    .search-input-wrapper input {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
     /* === ANIMATIONS === */
     @keyframes slideDown {
         from {
@@ -312,8 +339,8 @@
     }
 
     .dropdown-item:hover {
-        background: linear-gradient(135deg, rgba(37, 150, 190, 0.1) 0%, rgba(0, 212, 255, 0.08) 100%);
-        color: #2596be;
+        background: linear-gradient(135deg, rgba(9, 175, 185, 0.1) 0%, rgba(0, 228, 255, 0.08) 100%);
+        color: #09afb9;
         padding-left: 2rem;
     }
 

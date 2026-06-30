@@ -86,13 +86,13 @@
                     </div>
                     {{-- Slide 2 --}}
                     <div class="swiper-slide">
-                        <div class="card bg-info text-white border-0 overflow-hidden position-relative h-100 rounded-4" style="background: linear-gradient(135deg, #2596be, #00d4ff);">
+                        <div class="card bg-info text-white border-0 overflow-hidden position-relative h-100 rounded-4" style="background: linear-gradient(135deg, #09afb9, #00d4ff);">
                             <div class="card-img-overlay d-flex flex-column justify-content-center align-items-center p-3 p-md-5 text-center">
                                 <i class="fas fa-box-open fa-4x mb-3 opacity-50"></i>
                                 <h1 class="fw-bold promo-title">Koleksi Baru Podgasm!</h1>
                                 <p class="fs-6 fs-md-4 opacity-75">Varian rasa terbaru telah tiba.</p>
                                 <div class="mt-3">
-                                    <a href="#katalog" class="btn btn-light rounded-pill px-4 px-md-5 fw-bold shadow" style="color: #2596be !important;">Lihat Sekarang</a>
+                                    <a href="#katalog" class="btn btn-light rounded-pill px-4 px-md-5 fw-bold shadow" style="color: #09afb9 !important;">Lihat Sekarang</a>
                                 </div>
                             </div>
                         </div>
@@ -108,7 +108,7 @@
     </div>
 
     <div class="col-md-4">
-        <div class="card text-white border-0 shadow-sm rounded-4 overflow-hidden h-100" style="background: linear-gradient(135deg, #2596be 0%, #1d7b9e 100%);">
+        <div class="card text-white border-0 shadow-sm rounded-4 overflow-hidden h-100" style="background: linear-gradient(135deg, #09afb9 0%, #078991 100%);">
             <div class="card-body d-flex flex-column justify-content-center p-4">
                 <i class="fas fa-truck-moving fa-3x mb-3 opacity-50"></i>
                 <h4 class="fw-bold">Free Ongkir Partner</h4>

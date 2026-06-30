@@ -136,4 +136,71 @@ class OrderController extends Controller
             }
         }, $csvFileName);
     }
+
+    /**
+     * Memproses pesanan pengiriman ke kurir via Biteship API
+     */
+    public function shipWithBiteship(Request $request, $id)
+    {
+        try {
+            $order = Order::with(['user', 'items.product', 'items.variant'])->findOrFail($id);
+
+            if ($order->biteship_order_id) {
+                return redirect()->back()->withErrors(['msg' => 'Pesanan ini sudah pernah dikirim ke Biteship sebelumnya.']);
+            }
+
+            if (empty($order->destination_area_id) || empty($order->kurir) || empty($order->layanan)) {
+                return redirect()->back()->withErrors(['msg' => 'Informasi pengiriman tidak lengkap (Area ID/Kurir/Layanan kosong). Hubungi admin untuk melengkapi data order.']);
+            }
+
+            // Format items sesuai Biteship API
+            $biteshipItems = [];
+            foreach ($order->items as $item) {
+                $biteshipItems[] = [
+                    'name' => $item->product->nama_barang . ($item->variant ? ' (' . $item->variant->nama_varian . ')' : ''),
+                    'value' => (int) $item->price,
+                    'quantity' => (int) $item->quantity,
+                    'weight' => 200 // default weight 200gr per item
+                ];
+            }
+
+            $orderData = [
+                'recipient_name' => $order->nama_penerima,
+                'recipient_phone' => $order->no_telp,
+                'recipient_email' => $order->email,
+                'recipient_address' => $order->alamat_pengiriman,
+                'recipient_area_id' => $order->destination_area_id,
+                'courier_company' => $order->kurir,
+                'courier_type' => $order->layanan,
+                'items' => $biteshipItems
+            ];
+
+            $biteship = app(\App\Services\BiteshipService::class);
+            $response = $biteship->createOrder($orderData);
+
+            if ($response['success']) {
+                $order->update([
+                    'biteship_order_id' => $response['id'],
+                    'resi' => $response['waybill_id'] ?? $response['courier']['waybill_id'] ?? 'MOCK-AWB-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                    'status' => OrderStatus::SHIPPED->value
+                ]);
+
+                // Kirim notifikasi ke pelanggan
+                if ($order->user) {
+                    $order->user->notify(new \App\Notifications\OrderStatusNotification($order, 'Pesanan Anda telah diserahkan ke kurir (' . strtoupper($order->kurir) . ') dengan nomor resi: ' . $order->resi . '.'));
+                }
+
+                $msg = 'Pesanan berhasil dikirim ke Biteship! ' . ($response['message'] ?? '');
+                return redirect()->back()->with('success', $msg);
+            }
+
+            return redirect()->back()->withErrors(['msg' => 'Gagal membuat pesanan Biteship: ' . ($response['message'] ?? 'Unknown Error')]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error shipping with Biteship for Order ID ' . $id . ': ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
+            return redirect()->back()->withErrors(['msg' => 'Gagal memproses pengiriman: ' . $e->getMessage()]);
+        }
+    }
 }

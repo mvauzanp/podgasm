@@ -10,16 +10,24 @@ use Illuminate\Support\Facades\Auth;
 
 class PublicController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // 1. Mengambil semua kategori dengan eager load children untuk Mega Menu
         $categories = Category::with('children')->get();
         
-        // 2. Mengambil produk terbaru (Non-Promo) untuk grid utama
-        $products = Product::where('is_promo', false)
-                            ->latest()
-                            ->take(8)
-                            ->get();
+        // 2. Mengambil produk (Non-Promo) untuk grid utama dengan sorting
+        $query = Product::where('is_promo', false);
+        
+        $sort = $request->query('sort', 'newest');
+        if ($sort === 'price_low') {
+            $query->orderBy('harga_jual', 'asc');
+        } elseif ($sort === 'price_high') {
+            $query->orderBy('harga_jual', 'desc');
+        } else { // default atau 'newest'
+            $query->latest();
+        }
+        
+        $products = $query->take(8)->get();
 
         // 3. Mengambil produk khusus promo untuk _promo-banner
         $promoProducts = Product::where('is_promo', true)

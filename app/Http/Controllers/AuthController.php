@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\RegisterB2BRequest;
+use App\Http\Requests\LoginRequest;
 
 class AuthController extends Controller
 {
@@ -16,43 +19,8 @@ class AuthController extends Controller
         return view('pages.auth.register');
     }
 
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        // ✅ Validasi Input untuk B2C (Customer)
-        $request->validate([
-            'name'     => [
-                'required',
-                'string',
-                'max:255',
-                'regex:/^[a-zA-Z\s\-\.\']+$/',
-            ],
-            'email'    => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                'unique:users',
-                'regex:/^[a-zA-Z0-9._\-+]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/',
-            ],
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-                'confirmed',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/',
-            ],
-        ], [
-            'name.required' => 'Nama harus diisi',
-            'name.regex' => 'Nama hanya boleh berisi huruf, spasi, dan tanda baca',
-            'email.required' => 'Email harus diisi',
-            'email.unique' => 'Email sudah terdaftar di sistem',
-            'email.regex' => 'Format email tidak sesuai',
-            'password.required' => 'Password harus diisi',
-            'password.min' => 'Password minimal 8 karakter',
-            'password.confirmed' => 'Konfirmasi password tidak cocok',
-            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, dan angka',
-        ]);
-
         try {
             $name = strip_tags(trim($request->name));
             $email = strtolower(trim($request->email));
@@ -78,49 +46,8 @@ class AuthController extends Controller
     /**
      * Register B2B / Reseller
      */
-    public function registerB2B(Request $request)
+    public function registerB2B(RegisterB2BRequest $request)
     {
-        // ✅ Validasi Input untuk B2B (Reseller)
-        $request->validate([
-            'owner_name' => 'required|string|max:255',
-            'store_name' => 'required|string|max:255',
-            'email'      => [
-                'required',
-                'email',
-                'max:255',
-                'unique:users',
-                'unique:b2b_registrations',
-            ],
-            'phone'      => 'required|string|max:20',
-            'address'    => 'required|string|max:1000',
-            'password'   => [
-                'required',
-                'string',
-                'min:8',
-                'confirmed',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/',
-            ],
-            'ktp_file'   => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'storefront_photo' => 'required|image|mimes:jpg,jpeg,png|max:5120',
-        ], [
-            'owner_name.required' => 'Nama pemilik harus diisi',
-            'store_name.required' => 'Nama toko harus diisi',
-            'email.required' => 'Email harus diisi',
-            'email.unique' => 'Email sudah terdaftar di sistem',
-            'phone.required' => 'Telepon harus diisi',
-            'address.required' => 'Alamat harus diisi',
-            'password.required' => 'Password harus diisi',
-            'password.min' => 'Password minimal 8 karakter',
-            'password.confirmed' => 'Konfirmasi password tidak cocok',
-            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, dan angka',
-            'ktp_file.required' => 'File KTP harus diunggah',
-            'ktp_file.mimes' => 'Format KTP harus PDF, JPG, atau PNG',
-            'ktp_file.max' => 'Ukuran KTP maksimal 5MB',
-            'storefront_photo.required' => 'Foto toko harus diunggah',
-            'storefront_photo.mimes' => 'Format foto harus JPG atau PNG',
-            'storefront_photo.max' => 'Ukuran foto maksimal 5MB',
-        ]);
-
         try {
             // Upload files
             $ktpPath = $request->file('ktp_file')->store('b2b/ktp', 'public');
@@ -169,32 +96,10 @@ class AuthController extends Controller
         return view('pages.auth.login');
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        // ✅ Validasi input dengan rules yang komprehensif
-        $credentials = $request->validate([
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                'regex:/^[a-zA-Z0-9._\-+]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/',
-            ],
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-                'max:255',
-            ],
-        ], [
-            'email.required' => 'Email harus diisi',
-            'email.email' => 'Format email tidak valid',
-            'email.max' => 'Email maksimal 255 karakter',
-            'email.regex' => 'Format email tidak sesuai',
-            'password.required' => 'Password harus diisi',
-            'password.string' => 'Password harus berupa teks',
-            'password.min' => 'Password minimal 8 karakter',
-            'password.max' => 'Password maksimal 255 karakter',
-        ]);
+        // ✅ Ambil input terverifikasi
+        $credentials = $request->validated();
 
         // ✅ Normalisasi email input
         $credentials['email'] = strtolower(trim($credentials['email']));
