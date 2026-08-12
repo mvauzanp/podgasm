@@ -23,7 +23,7 @@ class CartController extends Controller
         }
 
         $cart = Cart::getOrCreateForUser(Auth::id());
-        $items = $cart->items()->with(['product', 'variant'])->get();
+        $items = $cart->items()->with(['product', 'variant', 'cart.user'])->get();
 
         return view('components._offcanvas_cart', compact('cart', 'items'));
     }
@@ -34,7 +34,7 @@ class CartController extends Controller
     public function index()
     {
         $cart = Cart::getOrCreateForUser(Auth::id());
-        $items = $cart->items()->with(['product', 'variant'])->get();
+        $items = $cart->items()->with(['product', 'variant', 'cart.user'])->get();
         
         // Periksa apakah ada perubahan harga
         $priceChanges = [];
@@ -296,6 +296,13 @@ class CartController extends Controller
             // ✅ Validasi stok cukup untuk quantity baru
             $limit = $item->product_variant_id ? ($item->variant->stok_aktual ?? 0) : $product->stok_aktual;
             if ($request->quantity > $limit) {
+                if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Stok tidak cukup. Tersedia: {$limit} unit",
+                        'available_stock' => $limit
+                    ], 422);
+                }
                 return redirect()->back()->with('error', 
                     "Stok tidak cukup. Tersedia: {$limit} unit");
             }
@@ -306,6 +313,21 @@ class CartController extends Controller
             
             // Hitung ulang total
             $item->cart->calculateTotal();
+            $cartTotal = $item->cart->total_price;
+            $cartCount = $item->cart->items()->sum('quantity');
+
+            if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Keranjang berhasil diperbarui!',
+                    'quantity' => $item->quantity,
+                    'itemSubtotal' => $item->price * $item->quantity,
+                    'itemSubtotalFormatted' => 'Rp ' . number_format($item->price * $item->quantity, 0, ',', '.'),
+                    'cartTotal' => $cartTotal,
+                    'cartTotalFormatted' => 'Rp ' . number_format($cartTotal, 0, ',', '.'),
+                    'cartCount' => $cartCount
+                ]);
+            }
 
             return redirect()->back()->with('success', 'Keranjang berhasil diperbarui!');
         } catch (\Exception $e) {
@@ -313,6 +335,12 @@ class CartController extends Controller
                 'exception' => $e,
                 'input' => $request->all()
             ]);
+            if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan sistem saat memperbarui keranjang belanja.'
+                ], 500);
+            }
             return redirect()->back()->with('error', 'Terjadi kesalahan sistem saat memperbarui keranjang belanja.');
         }
     }

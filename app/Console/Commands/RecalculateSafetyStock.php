@@ -40,53 +40,84 @@ class RecalculateSafetyStock extends Command
 
             $skus = [];
 
-            // Hitung penjualan 30 hari terakhir untuk Simple Products
+            // Petakan Simple Products ke struktur SKU
             foreach ($simpleProducts as $product) {
-                $totalQty = (float) OrderItem::where('product_id', $product->id)
-                    ->whereNull('product_variant_id')
-                    ->whereHas('order', function ($query) {
-                        $query->whereIn('status', ['paid', 'shipped', 'completed']);
-                    })
-                    ->where('created_at', '>=', now()->subDays(30))
-                    ->sum('quantity') ?? 0;
-
                 $skus[] = [
                     'type' => 'simple',
                     'id' => $product->id,
                     'model' => $product,
-                    'sales_qty' => $totalQty,
                     'lead_time' => $product->lead_time ?: 3, // Fallback ke default 3 hari
                 ];
             }
 
-            // Hitung penjualan 30 hari terakhir untuk Product Variants
+            // Petakan Product Variants ke struktur SKU
             foreach ($variants as $variant) {
-                $totalQty = (float) OrderItem::where('product_variant_id', $variant->id)
-                    ->whereHas('order', function ($query) {
-                        $query->whereIn('status', ['paid', 'shipped', 'completed']);
-                    })
-                    ->where('created_at', '>=', now()->subDays(30))
-                    ->sum('quantity') ?? 0;
-
                 $skus[] = [
                     'type' => 'variant',
                     'id' => $variant->id,
                     'model' => $variant,
-                    'sales_qty' => $totalQty,
                     'lead_time' => $variant->lead_time ?: 3, // Fallback ke default 3 hari
                 ];
             }
 
-            // 2. Lakukan ABC Classification secara global berdasarkan penjualan seluruh SKU
+            // 2. Hitung total penjualan 30 hari dalam satu kueri agregasi tunggal (Mencegah N+1 Queries)
+            $orderItemsGrouped = OrderItem::whereHas('order', function ($query) {
+                $query->whereIn('status', ['paid', 'shipped', 'completed', 'delivered']);
+            })
+            ->where('created_at', '>=', now()->subDays(30))
+            ->select('product_id', 'product_variant_id', DB::raw('SUM(quantity) as total_qty'))
+            ->groupBy('product_id', 'product_variant_id')
+            ->get();
+
+            $salesLookup = [];
+            $grandTotalSales = 0;
+            foreach ($orderItemsGrouped as $item) {
+                $key = $item->product_id . '_' . ($item->product_variant_id ?? '0');
+                $salesLookup[$key] = (float) $item->total_qty;
+                $grandTotalSales += (float) $item->total_qty;
+            }
+
+            foreach ($skus as &$sku) {
+                $key = ($sku['type'] === 'simple') 
+                    ? $sku['id'] . '_0' 
+                    : $sku['model']->product_id . '_' . $sku['id'];
+                $sku['sales_qty'] = $salesLookup[$key] ?? 0.0;
+            }
+            unset($sku);
+
+            // Urutkan penjualan secara descending untuk mencari persentase kumulatif
             uasort($skus, function ($a, $b) {
                 return $b['sales_qty'] <=> $a['sales_qty'];
             });
 
-            $grandTotalSales = array_sum(array_column($skus, 'sales_qty'));
+            // 3. Ambil data penjualan harian 30 hari terakhir dalam satu kueri agregasi (Mencegah N+1 Queries)
+            $dailySalesGrouped = OrderItem::whereHas('order', function ($query) {
+                $query->whereIn('status', ['paid', 'shipped', 'completed', 'delivered']);
+            })
+            ->where('created_at', '>=', now()->subDays(30))
+            ->select(
+                'product_id', 
+                'product_variant_id', 
+                DB::raw('DATE(created_at) as date'), 
+                DB::raw('SUM(quantity) as total_qty')
+            )
+            ->groupBy('product_id', 'product_variant_id', DB::raw('DATE(created_at)'))
+            ->get();
+
+            $dailySalesLookup = [];
+            foreach ($dailySalesGrouped as $item) {
+                $key = $item->product_id . '_' . ($item->product_variant_id ?? '0');
+                $dailySalesLookup[$key][$item->date] = (float) $item->total_qty;
+            }
+
+            $zScores = ['A' => 2.05, 'B' => 1.65, 'C' => 1.28];
             $runningSum = 0;
 
-            foreach ($skus as &$sku) {
+            // Hitung Standard Deviasi, Avg Sales, dan Safety Stock per SKU
+            foreach ($skus as $sku) {
+                $model = $sku['model'];
                 $qty = $sku['sales_qty'];
+
                 if ($grandTotalSales > 0) {
                     $runningSum += $qty;
                     $cumulativePercentage = ($runningSum / $grandTotalSales) * 100;
@@ -95,47 +126,29 @@ class RecalculateSafetyStock extends Command
                 }
 
                 if ($qty == 0) {
-                    $sku['class'] = 'C';
+                    $class = 'C';
                 } elseif ($cumulativePercentage <= 70) {
-                    $sku['class'] = 'A';
+                    $class = 'A';
                 } elseif ($cumulativePercentage <= 90) {
-                    $sku['class'] = 'B';
+                    $class = 'B';
                 } else {
-                    $sku['class'] = 'C';
+                    $class = 'C';
                 }
-            }
-            unset($sku); // Break reference
 
-            $zScores = ['A' => 2.05, 'B' => 1.65, 'C' => 1.28];
-
-            // 3. Hitung Standard Deviasi, Avg Sales, dan Safety Stock per SKU
-            foreach ($skus as $sku) {
-                $model = $sku['model'];
-                $class = $sku['class'];
                 $zScore = $zScores[$class];
                 $leadTime = $sku['lead_time'];
 
-                // Ambil penjualan harian 30 hari terakhir
-                $query = OrderItem::whereHas('order', function ($query) {
-                    $query->whereIn('status', ['paid', 'shipped', 'completed']);
-                })->where('created_at', '>=', now()->subDays(30));
+                $key = ($sku['type'] === 'simple') 
+                    ? $sku['id'] . '_0' 
+                    : $model->product_id . '_' . $sku['id'];
 
-                if ($sku['type'] === 'simple') {
-                    $query->where('product_id', $sku['id'])->whereNull('product_variant_id');
-                } else {
-                    $query->where('product_variant_id', $sku['id']);
-                }
-
-                $salesData = $query->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(quantity) as total_qty'))
-                    ->groupBy('date')
-                    ->pluck('total_qty', 'date')
-                    ->toArray();
+                $salesData = $dailySalesLookup[$key] ?? [];
 
                 // daily sales array untuk 30 hari penuh
                 $dailySales = [];
                 for ($i = 29; $i >= 0; $i--) {
                     $dateStr = now()->subDays($i)->format('Y-m-d');
-                    $dailySales[$dateStr] = (float)($salesData[$dateStr] ?? 0);
+                    $dailySales[$dateStr] = (float)($salesData[$dateStr] ?? 0.0);
                 }
 
                 $avgSales = array_sum($dailySales) / 30;

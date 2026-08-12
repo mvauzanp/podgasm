@@ -27,11 +27,11 @@
                 <div>
                     <h5 class="fw-bold mb-2">Safety Stock Statistik &amp; Analisis ABC Otomatis (SKU-Level)</h5>
                     <p class="mb-3 opacity-90 fs-6">
-                        Sistem mengklasifikasikan produk dan variasi secara otomatis dengan **Analisis ABC** (berdasarkan volume penjualan 30 hari terakhir) untuk menentukan **Service Level** optimal, lalu menghitung **Safety Stock** menggunakan deviasi standar penjualan harian dan Lead Time rata-rata (default: 3 hari).
+                        Sistem mengklasifikasikan produk dan variasi secara otomatis dengan Analisis ABC (berdasarkan volume penjualan 30 hari terakhir) untuk menentukan **Service Level** optimal, lalu menghitung **Safety Stock** menggunakan deviasi standar penjualan harian dan Lead Time rata-rata (default: 4 hari).
                     </p>
                     <div class="bg-white bg-opacity-10 p-3 rounded-3 border border-white border-opacity-10 d-inline-block">
                         <span class="badge bg-light text-dark me-2 fw-bold">Rumus Statistik</span>
-                        <code class="text-white fs-6 font-monospace">Safety Stock (SS) = Z &times; Deviasi Standar (&sigma;) &times; &radic;Lead Time</code>
+                        <span class="text-white fs-6 fw-semibold">Safety Stock (SS) = Z &times; Deviasi Standar (&sigma;) &times; &radic;Lead Time</span>
                     </div>
                 </div>
             </div>
@@ -45,7 +45,7 @@
                 <div class="card-body py-3">
                     <h6 class="text-muted small text-uppercase mb-1">Kelas A (Fast Moving)</h6>
                     <h5 class="fw-bold m-0 text-danger">SL 98% <span class="text-muted fs-6 fw-normal">(Z = 2.05)</span></h5>
-                    <small class="text-muted">Kontribusi penjualan kumulatif 0% - 70%</small>
+                    <small class="text-muted">Menyumbang 70% total barang terjual (Kumulatif 0% - 70%)</small>
                 </div>
             </div>
         </div>
@@ -54,7 +54,7 @@
                 <div class="card-body py-3">
                     <h6 class="text-muted small text-uppercase mb-1">Kelas B (Medium Moving)</h6>
                     <h5 class="fw-bold m-0 text-warning">SL 95% <span class="text-muted fs-6 fw-normal">(Z = 1.65)</span></h5>
-                    <small class="text-muted">Kontribusi penjualan kumulatif 70% - 90%</small>
+                    <small class="text-muted">Menyumbang 20% total barang terjual berikutnya (Kumulatif 70% - 90%)</small>
                 </div>
             </div>
         </div>
@@ -63,7 +63,7 @@
                 <div class="card-body py-3">
                     <h6 class="text-muted small text-uppercase mb-1">Kelas C (Slow Moving)</h6>
                     <h5 class="fw-bold m-0 text-info">SL 90% <span class="text-muted fs-6 fw-normal">(Z = 1.28)</span></h5>
-                    <small class="text-muted">Kontribusi penjualan kumulatif 90% - 100%</small>
+                    <small class="text-muted">Hanya menyumbang 10% total barang terjual terakhir (Kumulatif 90% - 100%)</small>
                 </div>
             </div>
         </div>
@@ -101,7 +101,7 @@
                     <tr>
                         <th class="ps-4" style="min-width: 200px;">Produk / Varian</th>
                         <th class="text-center">Stok Aktual</th>
-                        <th class="text-center">Lead Time</th>
+                        <th class="text-center">Lead Time (Hari)</th>
                         <th class="text-center">Kelas ABC</th>
                         <th class="text-center">Tingkat Pelayanan (Z)</th>
                         <th class="text-center">Deviasi Penjualan (&sigma;)</th>

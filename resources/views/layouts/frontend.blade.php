@@ -15,8 +15,8 @@
     {{-- Font Awesome --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    {{-- Google Font --}}
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {{-- Google Fonts: Poppins & Playfair Display --}}
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     {{-- Swiper CSS --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
@@ -27,24 +27,336 @@
     {{-- SweetAlert2 --}}
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 
-    <style>
+    {{-- Theme Initialization Script (Prevents White Flash in Dark Mode) --}}
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('podgasm_theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
 
-        *{
+    <style>
+        body, input, button, select, textarea, p, h1, h2, h3, h4, h5, h6, a, span, div {
             font-family: 'Poppins', sans-serif;
+        }
+
+        .fa, .fas, .far, .fab, .fal, .fad, [class*="fa-"] {
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "FontAwesome" !important;
+        }
+
+        .fas, .fa-solid {
+            font-weight: 900 !important;
+        }
+
+        .far, .fa-regular {
+            font-weight: 400 !important;
+        }
+
+        .fab, .fa-brands {
+            font-weight: 400 !important;
         }
 
         html {
             overflow-y: scroll;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         body{
-            background: #f4f7fb;
+            background: #ffffff;
             min-height: 100vh;
-            color: #1f2937;
+            color: #0f172a;
             position: relative;
             z-index: 0;
             overflow-x: hidden;
-            padding-top: 90px; /* Space untuk fixed navbar desktop */
+            padding-top: 130px; /* Space untuk top bar + navbar desktop */
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* ================= HIGH-AESTHETIC DARK MODE STYLES ================= */
+        html[data-bs-theme="dark"], body.dark-mode {
+            background-color: #0b0f19 !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .bg-white,
+        body.dark-mode .card,
+        body.dark-mode nav.navbar,
+        body.dark-mode .offcanvas,
+        body.dark-mode .modal-content,
+        body.dark-mode .dropdown-menu {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border-color: #1e293b !important;
+        }
+
+        body.dark-mode .top-announcement-bar {
+            background-color: #080c14 !important;
+            border-color: #1e293b !important;
+        }
+
+        body.dark-mode .top-announcement-bar div,
+        body.dark-mode .top-announcement-bar a {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .text-dark,
+        body.dark-mode .nav-link,
+        body.dark-mode .navbar-brand,
+        body.dark-mode .text-primary,
+        body.dark-mode .price-text,
+        body.dark-mode h2.text-primary,
+        body.dark-mode .display-6,
+        body.dark-mode .surfeit-details-box .fw-bold {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .text-secondary,
+        body.dark-mode .text-muted {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .surfeit-image-box,
+        body.dark-mode .surfeit-subcategory-card,
+        body.dark-mode .product-img-wrapper,
+        body.dark-mode .bg-slate-50,
+        body.dark-mode .bg-light,
+        body.dark-mode .bg-f4,
+        body.dark-mode .category-parent-pane {
+            background-color: #1e293b !important;
+        }
+
+        /* PERBAIKAN TEMA GELAP KATEGORI: Ubah background icon container & invert warna icon agar putih kontras tinggi */
+        body.dark-mode .surfeit-subcategory-card > div:first-child,
+        body.dark-mode .category-icon-box,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card > div:first-child,
+        html[data-bs-theme="dark"] .category-icon-box {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+        }
+
+        body.dark-mode .surfeit-subcategory-card img,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card img {
+            filter: brightness(0) invert(1) !important;
+            opacity: 0.95 !important;
+            transition: filter 0.3s ease, opacity 0.3s ease;
+        }
+
+        body.dark-mode .surfeit-subcategory-card:hover,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card:hover {
+            background-color: #334155 !important;
+        }
+
+        body.dark-mode .surfeit-subcategory-card:hover > div:first-child,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card:hover > div:first-child {
+            background: linear-gradient(180deg, #1e293b 0%, #334155 100%) !important;
+        }
+
+        /* ACTIVE CATEGORY CARD HIGHLIGHT & GLOW */
+        .surfeit-subcategory-card.active-category-card {
+            border: 2px solid #09afb9 !important;
+            box-shadow: 0 4px 18px rgba(9, 175, 185, 0.45), 0 0 0 2px rgba(9, 175, 185, 0.2) !important;
+            transform: translateY(-3px) !important;
+        }
+        .surfeit-subcategory-card.active-category-card .category-icon-box {
+            background: linear-gradient(180deg, #e0f2fe 0%, #ccfbf1 100%) !important;
+        }
+
+        body.dark-mode .surfeit-subcategory-card.active-category-card,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card.active-category-card {
+            border: 2px solid #00d4ff !important;
+            box-shadow: 0 4px 22px rgba(0, 212, 255, 0.55), 0 0 0 2px rgba(9, 175, 185, 0.35) !important;
+        }
+        body.dark-mode .surfeit-subcategory-card.active-category-card .category-icon-box,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card.active-category-card .category-icon-box {
+            background: linear-gradient(180deg, #0f766e 0%, #1e293b 100%) !important;
+        }
+
+        /* SKELETON SHIMMER LOADING PLACEHOLDER */
+        .skeleton-shimmer {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: skeletonWave 1.4s infinite linear;
+            border-radius: 6px;
+        }
+        body.dark-mode .skeleton-shimmer,
+        html[data-bs-theme="dark"] .skeleton-shimmer {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+        }
+
+        @keyframes skeletonWave {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .product-skeleton-card {
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .product-skeleton-img {
+            height: 380px;
+            border-radius: 4px;
+        }
+
+        /* LUXURY PRICING TIER COMPONENT */
+        .card-pricing-tier {
+            background: #ffffff;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 16px;
+        }
+
+        .card-pricing-tier-title {
+            color: #0f172a !important;
+        }
+
+        /* DARK MODE PRICING TIER CONTAINER */
+        body.dark-mode .card-pricing-tier,
+        html[data-bs-theme="dark"] .card-pricing-tier {
+            background: rgba(30, 41, 59, 0.5) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        body.dark-mode .card-pricing-tier-title,
+        html[data-bs-theme="dark"] .card-pricing-tier-title {
+            color: #f8fafc !important;
+        }
+
+        /* TIER CARDS STYLING */
+        .tier-card-option {
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tier-card-option .tier-label {
+            color: #334155;
+            white-space: nowrap;
+        }
+
+        .tier-card-option:hover {
+            border-color: #09afb9 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(9, 175, 185, 0.15);
+        }
+
+        .tier-card-option.active-tier {
+            border: 2px solid #09afb9 !important;
+            background: #e0f2fe !important;
+            box-shadow: 0 4px 16px rgba(9, 175, 185, 0.25) !important;
+        }
+
+        .tier-card-option.active-tier .tier-label {
+            color: #0f766e !important;
+        }
+
+        /* DARK MODE TIER CARDS */
+        body.dark-mode .tier-card-option,
+        html[data-bs-theme="dark"] .tier-card-option {
+            background: rgba(15, 23, 42, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        body.dark-mode .tier-card-option .tier-label,
+        html[data-bs-theme="dark"] .tier-card-option .tier-label {
+            color: #cbd5e1 !important;
+            white-space: nowrap;
+        }
+
+        body.dark-mode .tier-card-option:hover,
+        html[data-bs-theme="dark"] .tier-card-option:hover {
+            border-color: #00d4ff !important;
+        }
+
+        body.dark-mode .tier-card-option.active-tier,
+        html[data-bs-theme="dark"] .tier-card-option.active-tier {
+            border: 2px solid #00d4ff !important;
+            background: linear-gradient(135deg, rgba(9, 175, 185, 0.3) 0%, rgba(2, 132, 199, 0.2) 100%) !important;
+            box-shadow: 0 0 18px rgba(0, 212, 255, 0.35) !important;
+        }
+
+        body.dark-mode .tier-card-option.active-tier .tier-label,
+        html[data-bs-theme="dark"] .tier-card-option.active-tier .tier-label {
+            color: #ffffff !important;
+        }
+
+        /* Category Slider Drag Scroll & Navigation Buttons */
+        .category-drag-scroll {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: pan-x;
+            scroll-behavior: smooth;
+        }
+        .category-scroll-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+        .category-scroll-btn:hover {
+            background: #09afb9 !important;
+            border-color: #09afb9 !important;
+            color: #ffffff !important;
+            transform: scale(1.08);
+        }
+        body.dark-mode .category-scroll-btn,
+        html[data-bs-theme="dark"] .category-scroll-btn {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #cbd5e1 !important;
+        }
+        body.dark-mode .category-scroll-btn:hover,
+        html[data-bs-theme="dark"] .category-scroll-btn:hover {
+            background: #09afb9 !important;
+            border-color: #09afb9 !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .surfeit-product-wrapper:hover .surfeit-image-box {
+            background-color: #334155 !important;
+        }
+
+        body.dark-mode .border-light,
+        body.dark-mode .border-bottom,
+        body.dark-mode .border-top,
+        body.dark-mode .border {
+            border-color: #1e293b !important;
+        }
+
+        body.dark-mode .border-dark {
+            border-color: #f8fafc !important;
+        }
+
+        body.dark-mode .surfeit-category-title {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .btn-light {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .form-control,
+        body.dark-mode .form-select {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .theme-toggle-btn {
+            background-color: #1e293b !important;
+            color: #f59e0b !important;
+            border: 1px solid #334155 !important;
         }
 
         @media(max-width: 768px){
@@ -422,6 +734,9 @@
 
     </main>
 
+    {{-- Footer & Health Warning Banner --}}
+    @include('components._footer')
+
     {{-- Global Offcanvas Cart --}}
     <div class="offcanvas offcanvas-end shadow" tabindex="-1" id="offcanvasCart" aria-labelledby="offcanvasCartLabel" style="width: 400px; border-left: none;">
         <div class="offcanvas-header border-bottom py-3">
@@ -483,8 +798,18 @@
                             'X-Requested-With': 'XMLHttpRequest'
                         }
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (response.status === 401) {
+                            showToast('Silakan login terlebih dahulu untuk menambahkan produk ke wishlist.', 'error', 3000);
+                            setTimeout(() => {
+                                window.location.href = "{{ route('login') }}";
+                            }, 1500);
+                            return null;
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        if (!data) return;
                         if (data.success) {
                             // Fill the heart icon
                             icon.classList.remove('far');
@@ -603,6 +928,9 @@
 
     {{-- Live Chat CS Widget for B2B/B2C without branch --}}
     @include('components._cs-chat-widget')
+
+    {{-- Age Verification Modal (21+) --}}
+    @include('components._age-verification-modal')
 
     {{-- ✅ PERBAIKAN: Stack untuk @push('scripts') dari child views --}}
     @stack('scripts')

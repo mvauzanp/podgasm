@@ -36,10 +36,11 @@ Route::get('/category/{slug}', [PublicController::class, 'categoryIndex'])->name
 Route::get('/product/{slug}', [PublicController::class, 'show'])->name('public.product.show'); // ✅ PERBAIKAN #6
 Route::get('/search', [PublicController::class, 'search'])->name('public.search'); // ✅ PERBAIKAN #6
 
-// ✅ B2B REGISTRATION - Public
-Route::get('/b2b/register', [B2BRegistrationController::class, 'create'])->name('b2b.register');
-Route::post('/b2b/register', [B2BRegistrationController::class, 'store'])->name('b2b.store');
-Route::get('/b2b/pending', function() { return view('pages.public.b2b-pending'); })->name('b2b.pending')->middleware('auth');
+// Public B2B Register Redirect to Standard Register
+Route::get('/b2b/register', function() { return redirect()->route('register'); });
+
+// ✅ MIDTRANS WEBHOOK NOTIFICATION - Public
+Route::post('/api/midtrans/notification', [\App\Http\Controllers\MidtransController::class, 'notification'])->name('midtrans.notification');
 
 /*
 |--------------------------------------------------------------------------
@@ -51,7 +52,6 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/register/b2b', [AuthController::class, 'registerB2B'])->name('register.b2b');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
@@ -92,6 +92,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/history/{id}/confirm-payment', [OrderController::class, 'confirmPayment'])->name('order.confirmPayment');
     Route::post('/history/{id}/cancel', [OrderController::class, 'cancelOrder'])->name('order.cancel');
     
+    // ✅ MIDTRANS PAYMENT GATEWAY
+    Route::get('/history/{order}/snap-token', [\App\Http\Controllers\MidtransController::class, 'getSnapToken'])->name('order.snapToken');
+    Route::post('/history/{order}/reset-payment', [\App\Http\Controllers\MidtransController::class, 'resetSnapToken'])->name('order.resetPayment');
+    
     // ✅ FITUR TRACKING
     Route::get('/history/{id}/track', [OrderController::class, 'track'])->name('order.track');
     
@@ -99,6 +103,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.updatePassword');
 
     // ✅ FITUR LIVE CHAT CS (B2C & B2B Reseller)
     Route::get('/chat/messages', [CsChatController::class, 'fetchMessages'])->name('chat.fetch');

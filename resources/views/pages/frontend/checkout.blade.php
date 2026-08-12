@@ -90,44 +90,156 @@
 
                     @if(!$isB2B)
                         {{-- 🔥 METODE PEMBAYARAN --}}
-                        <h5 class="fw-bold mb-3">Metode Pembayaran</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                            <h5 class="fw-bold mb-0">Metode Pembayaran</h5>
+                            <span class="badge bg-light text-dark px-3 py-2 rounded-pill small border"><i class="fas fa-shield-alt text-success me-1"></i> Otomatis & Terenkripsi</span>
+                        </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-2">
-                                <input type="radio" class="btn-check" name="metode_pembayaran" id="cash" value="cash" checked>
-                                <label class="btn btn-outline-primary w-100 p-3 rounded-3 text-start" for="cash">
-                                    <i class="fas fa-money-bill me-2"></i> 
-                                    <strong>Tunai</strong>
-                                    <small class="d-block text-muted">Pembayaran di tempat</small>
+                        <div class="row g-3">
+                            {{-- SEMUA PEMBAYARAN ONLINE --}}
+                            <div class="col-12">
+                                <input type="radio" class="btn-check payment-radio" name="metode_pembayaran" id="midtrans" value="midtrans" checked>
+                                <label class="payment-card border rounded-4 p-3 d-block cursor-pointer position-relative transition-all" for="midtrans">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-shape bg-primary text-white rounded-3 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                                <i class="fas fa-bolt fa-lg"></i>
+                                            </div>
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <strong class="h6 mb-0 text-dark">Semua Pembayaran Online</strong>
+                                                    <span class="badge bg-success bg-gradient text-white rounded-pill px-2 py-1" style="font-size: 0.65rem;">
+                                                        <i class="fas fa-check-circle me-1"></i>REKOMENDASI
+                                                    </span>
+                                                </div>
+                                                <small class="text-muted d-block mt-1">Pilih bebas Virtual Account, Scan QRIS, E-Wallet, atau Kartu Kredit</small>
+                                            </div>
+                                        </div>
+                                        <div class="radio-check-icon text-primary h5 mb-0">
+                                            <i class="far fa-circle text-muted uncheck"></i>
+                                            <i class="fas fa-check-circle text-primary checked d-none"></i>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2 mt-2 pt-2 border-top">
+                                        <span class="badge bg-light text-secondary border fw-normal" style="font-size: 0.7rem;"><i class="fas fa-university me-1 text-info"></i>Virtual Account</span>
+                                        <span class="badge bg-light text-secondary border fw-normal" style="font-size: 0.7rem;"><i class="fas fa-qrcode me-1 text-danger"></i>QRIS</span>
+                                        <span class="badge bg-light text-secondary border fw-normal" style="font-size: 0.7rem;"><i class="fas fa-wallet me-1 text-warning"></i>E-Wallet</span>
+                                        <span class="badge bg-light text-secondary border fw-normal" style="font-size: 0.7rem;"><i class="fas fa-credit-card me-1 text-primary"></i>Kartu Kredit</span>
+                                    </div>
                                 </label>
                             </div>
 
-                            <div class="col-md-6 mb-2">
-                                <input type="radio" class="btn-check" name="metode_pembayaran" id="transfer" value="transfer">
-                                <label class="btn btn-outline-primary w-100 p-3 rounded-3 text-start" for="transfer">
-                                    <i class="fas fa-university me-2"></i> 
-                                    <strong>Transfer Bank</strong>
-                                    <small class="d-block text-muted">BCA / Mandiri</small>
-                                </label>
-                            </div>
-
+                            {{-- VIRTUAL ACCOUNT BANK --}}
                             <div class="col-md-6">
-                                <input type="radio" class="btn-check" name="metode_pembayaran" id="ewallet" value="e-wallet">
-                                <label class="btn btn-outline-primary w-100 p-3 rounded-3 text-start" for="ewallet">
-                                    <i class="fas fa-wallet me-2"></i> 
-                                    <strong>E-Wallet</strong>
-                                    <small class="d-block text-muted">GoPay, OVO, Dana</small>
+                                <input type="radio" class="btn-check payment-radio" name="metode_pembayaran" id="midtrans_va" value="midtrans_va">
+                                <label class="payment-card border rounded-4 p-3 d-block cursor-pointer position-relative transition-all h-100" for="midtrans_va">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-shape bg-info bg-opacity-10 text-info rounded-3 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-university"></i>
+                                            </div>
+                                            <div>
+                                                <strong class="d-block text-dark small">Virtual Account Bank</strong>
+                                                <small class="text-muted" style="font-size: 0.75rem;">BCA, Mandiri, BRI, BNI, Permata (Otomatis)</small>
+                                            </div>
+                                        </div>
+                                        <div class="radio-check-icon text-primary small">
+                                            <i class="far fa-circle text-muted uncheck"></i>
+                                            <i class="fas fa-check-circle text-primary checked d-none"></i>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {{-- QRIS & E-WALLET --}}
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check payment-radio" name="metode_pembayaran" id="midtrans_qris" value="midtrans_qris">
+                                <label class="payment-card border rounded-4 p-3 d-block cursor-pointer position-relative transition-all h-100" for="midtrans_qris">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-shape bg-danger bg-opacity-10 text-danger rounded-3 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-qrcode"></i>
+                                            </div>
+                                            <div>
+                                                <strong class="d-block text-dark small">QRIS & E-Wallet Instant</strong>
+                                                <small class="text-muted" style="font-size: 0.75rem;">Scan QRIS / GoPay / ShopeePay / Dana</small>
+                                            </div>
+                                        </div>
+                                        <div class="radio-check-icon text-primary small">
+                                            <i class="far fa-circle text-muted uncheck"></i>
+                                            <i class="fas fa-check-circle text-primary checked d-none"></i>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {{-- KARTU KREDIT --}}
+                            <div class="col-12">
+                                <input type="radio" class="btn-check payment-radio" name="metode_pembayaran" id="midtrans_cc" value="midtrans_cc">
+                                <label class="payment-card border rounded-4 p-3 d-block cursor-pointer position-relative transition-all" for="midtrans_cc">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-shape bg-warning bg-opacity-10 text-warning rounded-3 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-credit-card"></i>
+                                            </div>
+                                            <div>
+                                                <strong class="d-block text-dark small">Kartu Kredit / Debit</strong>
+                                                <small class="text-muted" style="font-size: 0.75rem;">Visa, Mastercard, JCB (3D Secure Safe)</small>
+                                            </div>
+                                        </div>
+                                        <div class="radio-check-icon text-primary small">
+                                            <i class="far fa-circle text-muted uncheck"></i>
+                                            <i class="fas fa-check-circle text-primary checked d-none"></i>
+                                        </div>
+                                    </div>
                                 </label>
                             </div>
                         </div>
 
-                        <div class="alert alert-info small mt-4">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Setelah klik "Buat Pesanan", silakan lakukan pembayaran sesuai metode yang dipilih.
+                        <style>
+                            .payment-card {
+                                background-color: #ffffff;
+                                transition: all 0.25s ease-in-out;
+                                cursor: pointer;
+                            }
+                            .payment-card:hover {
+                                border-color: #0d6efd !important;
+                                transform: translateY(-2px);
+                                box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
+                            }
+                            .payment-radio:checked + .payment-card {
+                                border-color: #0d6efd !important;
+                                border-width: 2px !important;
+                                background-color: #f8faff;
+                                box-shadow: 0 4px 15px rgba(13, 110, 253, 0.12);
+                            }
+                            .payment-radio:checked + .payment-card .checked {
+                                display: inline-block !important;
+                            }
+                            .payment-radio:checked + .payment-card .uncheck {
+                                display: none !important;
+                            }
+                        </style>
+
+                        <div class="card border border-warning bg-warning bg-opacity-10 rounded-4 p-3 mt-4 mb-3">
+                            <div class="form-check d-flex align-items-start">
+                                <input class="form-check-input me-2 mt-1" type="checkbox" name="age_confirmation" id="age_confirmation" value="1" required style="cursor: pointer; min-width: 18px; height: 18px;">
+                                <label class="form-check-label small fw-semibold text-dark cursor-pointer mb-0" for="age_confirmation">
+                                    <i class="fas fa-shield-alt text-danger me-1"></i>
+                                    Saya mengonfirmasi berusia <strong>21 tahun atau lebih</strong>, memberikan data diri yang jujur, serta menyetujui Syarat & Ketentuan pembelian produk bernikotin.
+                                </label>
+                            </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow">
-                            Buat Pesanan Sekarang
+                        <div class="alert alert-light border rounded-4 small p-3 d-flex align-items-center text-muted">
+                            <i class="fas fa-info-circle text-primary fa-lg me-3"></i>
+                            <div>
+                                Pembayaran diproses secara otomatis dan aman. Silakan klik tombol di bawah untuk melanjutkan.
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg mt-2" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+                            <i class="fas fa-shield-alt me-2"></i> Buat Pesanan Sekarang
                         </button>
                     @else
                         <input type="hidden" name="metode_pembayaran" value="branch_request">

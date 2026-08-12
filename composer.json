@@ -9,6 +9,7 @@
         "php": "^8.3",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
+        "midtrans/midtrans-php": "^2.6",
         "phpoffice/phpspreadsheet": "^5.8",
         "smalot/pdfparser": "^2.12"
     },

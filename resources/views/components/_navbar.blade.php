@@ -1,447 +1,429 @@
-{{-- NAVBAR UTAMA - MODERN AESTHETIC --}}
-<nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="position: fixed; top: 0; left: 0; right: 0; z-index: 9999; width: 100%; background: linear-gradient(135deg, rgba(9, 175, 185, 0.96) 0%, rgba(7, 137, 145, 0.96) 100%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 0.85rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 6px 20px rgba(0,0,0,0.1);">
-    <div class="container">
-        {{-- LEFT: Burger & Brand --}}
-        <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-light navbar-burger" type="button" data-bs-toggle="offcanvas" data-bs-target="#categoryCanvas" style="border: 1px solid rgba(255,255,255,0.8); width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <i class="fas fa-bars" style="color: #09afb9; font-size: 1.1rem;"></i>
-            </button>
-            <a class="navbar-brand d-flex align-items-center mb-0 px-3 py-1 bg-white rounded-pill shadow-sm" href="{{ route('home') }}" style="transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.8); height: 46px; margin-left: 0 !important;">
-                <img src="{{ asset('PodgasmHome.png') }}" alt="Podgasm Logo" class="navbar-logo" style="height: 32px !important; width: auto; max-height: 32px !important; object-fit: contain;">
-            </a>
-        </div>
-
-        {{-- CENTER: Search Bar --}}
-        <form class="d-none d-lg-flex grow mx-4" action="{{ route('public.search') }}" method="GET" style="max-width: 400px;">
-            <div class="input-group search-input-wrapper">
-                <input type="text" class="form-control text-dark" placeholder="🔍 Cari device, liquid..." name="q" style="border: none; padding: 12px 18px; font-size: 0.95rem; background-color: rgba(255,255,255,0.95);">
-                <button class="btn" type="submit" style="background: #16213e; border: none; color: white; padding: 12px 18px; transition: all 0.3s ease;">
-                    <i class="fas fa-search"></i>
-                </button>
+{{-- EXACT SURFEIT HEADER & NAVIGATION BAR --}}
+<div class="fixed-top shadow-none bg-white" style="z-index: 9999;">
+    
+    {{-- 1. TOP ANNOUNCEMENT BAR (Sesuai Referensi Gambar Top Bar) --}}
+    <div class="top-announcement-bar py-1.5 px-3 border-bottom" style="background-color: #f4f3f0; border-color: #e8e7e3 !important; font-size: 0.8rem;">
+        <div class="container-fluid px-lg-5 d-flex justify-content-between align-items-center">
+            {{-- Kiri: Teks Miring Informasi --}}
+            <div class="text-secondary fst-italic text-truncate" style="font-family: Georgia, 'Times New Roman', serif;">
+                Garansi 100% Produk Original & Pengiriman Cepat 21+ ke Seluruh Indonesia
             </div>
-        </form>
 
-        {{-- RIGHT: Icons & User Menu --}}
-        <div class="d-flex align-items-center gap-1">
-            {{-- Mobile Search Toggle --}}
-            <button class="btn navbar-icon d-lg-none position-relative" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSearchCollapse" aria-expanded="false" aria-controls="mobileSearchCollapse" style="width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; color: white; border: none; background: transparent;">
-                <i class="fas fa-search"></i>
-            </button>
+            {{-- Kanan: Link Log In & Create Account --}}
+            <div class="d-flex align-items-center gap-3 ms-auto small">
+                @auth
+                    <span class="text-dark fw-semibold">Halo, {{ auth()->user()->name }}</span>
+                    <a href="{{ route('profile.show') }}" class="text-dark text-decoration-none hover-underline">Akun Saya</a>
+                    <button type="button" class="btn btn-link p-0 text-secondary text-decoration-none small" onclick="document.getElementById('logoutForm').submit()">Logout</button>
+                @else
+                    <a href="{{ route('login') }}" class="text-dark text-decoration-none hover-underline fw-medium">Log In</a>
+                    <a href="{{ route('register') }}" class="text-dark text-decoration-none hover-underline fw-medium">Create Account</a>
+                @endauth
+            </div>
+        </div>
+    </div>
 
-            {{-- Wishlist --}}
-            <a href="{{ route('wishlist.index') }}" class="btn navbar-icon position-relative" style="width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; color: white; border: none;">
-                <i class="fas fa-heart"></i>
-                @if(($wishlistCount ?? 0) > 0)
-                <span class="badge badge-counter">
-                    {{ $wishlistCount }}
-                </span>
-                @endif
+    {{-- 2. MAIN NAVBAR SURFEIT (Logo Kiri, Menu Tengah, Ikon Kanan) --}}
+    <nav class="navbar navbar-expand-lg bg-white border-bottom border-light py-3">
+        <div class="container-fluid px-lg-5">
+            
+            {{-- BRAND LOGO (Gambar Logo Podgasm) --}}
+            <a class="navbar-brand me-4 me-xl-5 d-flex align-items-center py-0" href="{{ route('home') }}">
+                <img src="{{ asset('PodgasmHome.png') }}" alt="Podgasm Logo" class="navbar-logo" style="height: 72px !important; max-height: 78px !important; width: auto; object-fit: contain;">
             </a>
 
-            {{-- Cart --}}
-            <button class="btn navbar-icon position-relative" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart" onclick="loadOffcanvasCart()" style="width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; color: white; border: none; background: transparent;">
-                <i class="fas fa-shopping-cart"></i>
-                @if(($cartCount ?? 0) > 0)
-                <span class="badge badge-counter">
-                    {{ $cartCount }}
-                </span>
-                @endif
+            {{-- Mobile Burger Toggle --}}
+            <button class="navbar-toggler border-0 shadow-none p-0 d-lg-none ms-auto me-3" type="button" data-bs-toggle="collapse" data-bs-target="#surfeitNavMenu">
+                <i class="fas fa-bars fs-4 text-dark"></i>
             </button>
 
-            {{-- User Dropdown --}}
-            @auth
-            <div class="dropdown ms-1">
-                <button class="btn navbar-icon" data-bs-toggle="dropdown" style="width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; color: white; border: none;">
-                    <i class="fas fa-user"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 p-0 rounded-4" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); min-width: 280px; animation: slideDown 0.3s ease;">
-                    <li class="px-4 py-3 border-bottom" style="background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);">
-                        <small class="text-muted d-block" style="font-size: 0.8rem;">Login sebagai</small>
-                        <span class="fw-bold text-primary" style="font-size: 1.1rem;">{{ auth()->user()->name }}</span>
+            {{-- NAV MENU LINKS (Horizontal Sejajar Sesuai Referensi) --}}
+            <div class="collapse navbar-collapse" id="surfeitNavMenu">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center gap-1 gap-xl-3" style="font-size: 0.88rem;">
+                    <li class="nav-item">
+                        <button class="nav-link text-dark fw-semibold border-0 bg-transparent py-1 text-nowrap" type="button" data-bs-toggle="offcanvas" data-bs-target="#categoryCanvas">
+                            Categories <i class="fas fa-chevron-down ms-1 opacity-50" style="font-size: 0.65rem;"></i>
+                        </button>
                     </li>
-                    <li><a class="dropdown-item py-3 px-4" href="{{ route('profile.show') }}" style="transition: all 0.3s ease; border-radius: 0;"><i class="fas fa-user-circle me-3" style="color: #09afb9; width: 20px;"></i> Profile</a></li>
-                    <li><a class="dropdown-item py-3 px-4" href="{{ route('order.history') }}" style="transition: all 0.3s ease; border-radius: 0;"><i class="fas fa-clock me-3" style="color: #09afb9; width: 20px;"></i> Riwayat Belanja</a></li>
-                    <li><hr class="dropdown-divider my-2"></li>
-                    <li><button class="dropdown-item py-3 px-4 text-danger w-100 text-start border-0 bg-transparent" onclick="document.getElementById('logoutForm').submit()" style="transition: all 0.3s ease;"><i class="fas fa-sign-out-alt me-3" style="width: 20px;"></i> Logout</button></li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 text-nowrap" href="{{ route('home') }}?sort=newest">New Arrivals</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 text-nowrap" href="{{ route('home') }}?sort=promo">Sale</a>
+                    </li>
                 </ul>
             </div>
-            @else
-            <div class="ms-2">
-                <a href="/login" class="btn btn-sm rounded-pill px-4 navbar-login-btn" style="background: #ffffff; color: #09afb9 !important; border: none; padding: 10px 20px !important; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">Login</a>
-            </div>
-            @endauth
-        </div>
-    </div>
 
-    {{-- COLLAPSIBLE MOBILE SEARCH BAR --}}
-    <div class="collapse d-lg-none w-100" id="mobileSearchCollapse" style="background: linear-gradient(135deg, #09afb9 0%, #078991 100%); border-top: 1px solid rgba(255, 255, 255, 0.1);">
-        <div class="px-3 py-2">
-            <form action="{{ route('public.search') }}" method="GET">
-                <div class="input-group search-input-wrapper">
-                    <input type="text" class="form-control text-dark" placeholder="🔍 Cari device, liquid..." name="q" style="border: none; padding: 10px 18px; font-size: 0.9rem; background-color: rgba(255,255,255,0.95);">
-                    <button class="btn" type="submit" style="background: #16213e; border: none; color: white; padding: 10px 18px;">
-                        <i class="fas fa-search"></i>
+            {{-- RIGHT ICONS (Search, Bookmark/Wishlist, Bag, Theme Switcher) --}}
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                {{-- Search Icon Trigger --}}
+                <button class="btn btn-icon-nav rounded-circle d-inline-flex align-items-center justify-content-center border-0 shadow-none" 
+                        type="button" 
+                        onclick="toggleSearchDrawer()" 
+                        title="Search"
+                        style="width: 42px; height: 42px; background-color: #f8fafc;">
+                    <i class="fas fa-search text-dark" style="font-size: 0.95rem;"></i>
+                </button>
+
+                {{-- Wishlist Ribbon Icon --}}
+                <a href="{{ route('wishlist.index') }}" 
+                   class="btn btn-icon-nav rounded-circle d-inline-flex align-items-center justify-content-center border-0 shadow-none position-relative" 
+                   title="Wishlist"
+                   style="width: 42px; height: 42px; background-color: #f8fafc;">
+                    <i class="far fa-heart text-danger" style="font-size: 1rem;"></i>
+                    @if(($wishlistCount ?? 0) > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger text-white border border-light" style="font-size: 0.58rem;">
+                            {{ $wishlistCount }}
+                        </span>
+                    @endif
+                </a>
+
+                {{-- Shopping Bag Icon --}}
+                <button class="btn btn-icon-nav rounded-circle d-inline-flex align-items-center justify-content-center border-0 shadow-none position-relative" 
+                        type="button" 
+                        data-bs-toggle="offcanvas" 
+                        data-bs-target="#offcanvasCart" 
+                        onclick="loadOffcanvasCart()" 
+                        title="Shopping Bag"
+                        style="width: 42px; height: 42px; background-color: #f8fafc;">
+                    <i class="fas fa-shopping-bag text-primary" style="font-size: 0.95rem;"></i>
+                    @if(($cartCount ?? 0) > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-primary text-white border border-light" style="font-size: 0.58rem;">
+                            {{ $cartCount }}
+                        </span>
+                    @endif
+                </button>
+
+                {{-- Account Dropdown Icon Button --}}
+                <div class="dropdown me-1">
+                    <button class="btn btn-icon-nav rounded-circle d-inline-flex align-items-center justify-content-center border-0 shadow-none position-relative" 
+                            type="button" 
+                            id="accountDropdownBtn" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false" 
+                            title="Akun Saya"
+                            style="width: 42px; height: 42px; background-color: #f8fafc;">
+                        <i class="far fa-user text-dark" style="font-size: 0.95rem;"></i>
+                        @auth
+                            <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-light rounded-circle" style="width: 10px; height: 10px;"></span>
+                        @endauth
                     </button>
+                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 p-2 mt-2" aria-labelledby="accountDropdownBtn" style="min-width: 230px; z-index: 99999;">
+                        @auth
+                            <li class="px-3 py-2 border-bottom mb-1 bg-light bg-opacity-50 rounded-3">
+                                <div class="fw-bold text-dark text-truncate small" style="max-width: 190px;">{{ auth()->user()->name }}</div>
+                                <div class="text-muted text-truncate" style="font-size: 0.75rem; max-width: 190px;">{{ auth()->user()->email }}</div>
+                                <span class="badge bg-primary text-white rounded-pill px-2 py-0.5 mt-1" style="font-size: 0.65rem;">
+                                    {{ ucfirst(auth()->user()->role ?? 'Pelanggan') }}
+                                </span>
+                            </li>
+                            @if(auth()->user()->role === 'admin')
+                                <li>
+                                    <a class="dropdown-item rounded-3 py-2 small fw-semibold text-dark" href="{{ route('admin.dashboard') }}">
+                                        <i class="fas fa-chart-line me-2 text-primary"></i> Dashboard Admin
+                                    </a>
+                                </li>
+                            @endif
+                            <li>
+                                <a class="dropdown-item rounded-3 py-2 small fw-semibold text-dark" href="{{ route('profile.show') }}">
+                                    <i class="fas fa-user-circle me-2 text-primary"></i> Profil &amp; Pengaturan Akun
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item rounded-3 py-2 small fw-semibold text-dark" href="{{ route('order.history') }}">
+                                    <i class="fas fa-box-open me-2 text-primary"></i> Riwayat Pesanan
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item rounded-3 py-2 small fw-semibold text-dark" href="{{ route('wishlist.index') }}">
+                                    <i class="far fa-heart me-2 text-danger"></i> Wishlist Saya
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <button type="button" class="dropdown-item rounded-3 py-2 small text-danger fw-semibold" onclick="document.getElementById('logoutForm').submit()">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Keluar (Logout)
+                                </button>
+                            </li>
+                        @else
+                            <li class="px-3 py-2 mb-2">
+                                <div class="fw-bold text-dark small">Selamat Datang!</div>
+                                <div class="text-muted small" style="font-size: 0.78rem;">Masuk ke akun Anda untuk bertransaksi</div>
+                            </li>
+                            <li class="px-2 pb-1">
+                                <a class="btn btn-primary btn-sm w-100 rounded-3 py-2.5 fw-bold text-white shadow-sm d-flex align-items-center justify-content-center gap-2 mb-2 nav-login-btn" 
+                                   href="{{ route('login') }}" 
+                                   style="background: linear-gradient(135deg, #09afb9 0%, #0284c7 100%); border: none; color: #ffffff !important;">
+                                    <i class="fas fa-sign-in-alt text-white" style="font-size: 0.9rem;"></i>
+                                    <span class="text-white">Masuk (Log In)</span>
+                                </a>
+                                <a class="btn btn-outline-secondary btn-sm w-100 rounded-3 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2 nav-register-btn" 
+                                   href="{{ route('register') }}">
+                                    <i class="fas fa-user-plus" style="font-size: 0.88rem;"></i>
+                                    <span>Daftar Akun Baru</span>
+                                </a>
+                            </li>
+                        @endauth
+                    </ul>
                 </div>
-            </form>
-        </div>
-    </div>
-</nav>
 
-{{-- OFFCANVAS SIDEBAR - MODERN DESIGN --}}
-<div class="offcanvas offcanvas-start" tabindex="-1" id="categoryCanvas" style="width: 500px; max-width: 90vw;">
-    <div class="offcanvas-header border-bottom py-4" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: none !important;">
-        <h5 class="fw-bold mb-0" style="color: white; font-size: 1.4rem;">📂 KATEGORI</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body d-flex p-0">
-        {{-- Area Kategori Parent (Kiri) --}}
-        <div class="category-parent-pane">
-            <div class="list-group list-group-flush mt-0">
-                @forelse(($categories ?? collect())->where('parent_id', null) as $parent)
-                    <div class="list-group-item list-group-item-action border-0 py-3 category-item px-3" 
-                         style="cursor: pointer; transition: all 0.3s ease; border-left: 4px solid transparent; font-weight: 500; color: #333;" 
-                         data-id="{{ $parent->id }}">
-                        {{ strtoupper($parent->nama_kategori) }}
-                    </div>
-                @empty
-                    <p class="text-muted p-3 text-center">Tidak ada kategori</p>
-                @endforelse
+                {{-- Theme Switcher Toggle (Terang / Gelap) --}}
+                <button type="button" 
+                        class="btn theme-toggle-btn rounded-circle d-inline-flex align-items-center justify-content-center shadow-none border-0 ms-1" 
+                        id="themeToggleBtn" 
+                        onclick="toggleTheme()" 
+                        title="Ganti Tema (Gelap/Terang)" 
+                        style="width: 42px; height: 42px; background-color: #f8fafc;">
+                    <i class="fas fa-moon text-dark" id="themeToggleIcon" style="font-size: 0.95rem;"></i>
+                </button>
             </div>
         </div>
+    </nav>
 
-        {{-- Area Kategori Child (Kanan) --}}
-        <div class="grow p-4 bg-white category-child-pane" id="childContainer">
-            <div class="text-center mt-5 text-muted">
-                <i class="fas fa-arrow-left fa-2x mb-3 d-block opacity-25"></i>
-                <p style="color: #666; font-size: 0.95rem;">Pilih kategori utama untuk melihat isi koleksi</p>
+    {{-- FLOATING SEARCH BAR POPOVER OVERLAY --}}
+    <div id="surfeitSearchCollapse" class="surfeit-search-popover position-absolute top-100 start-0 w-100 bg-white border-bottom shadow-lg py-4 px-3" style="display: none; z-index: 99999; transition: all 0.3s ease;">
+        <div class="container-fluid px-lg-5">
+            <form action="{{ route('public.search') }}" method="GET" class="d-flex align-items-center gap-2 max-w-lg mx-auto" style="max-width: 650px;">
+                <div class="input-group input-group-minimalist rounded-pill overflow-hidden border border-light bg-slate-50 w-100 p-1.5 shadow-sm">
+                    <span class="input-group-text bg-transparent border-0 ps-3 text-muted">
+                        <i class="fas fa-search" style="font-size: 1rem;"></i>
+                    </span>
+                    <input type="text" class="form-control bg-transparent border-0 shadow-none text-dark fw-medium" placeholder="Search products, liquid, pods..." name="q" value="{{ request('q') }}" required style="font-size: 0.95rem; padding: 10px 14px;" id="searchInputField" autocomplete="off">
+                    <button type="submit" class="btn btn-dark rounded-pill px-4 fw-semibold text-white small me-1" style="font-size: 0.88rem;">Search</button>
+                </div>
+                <button type="button" class="btn btn-light rounded-circle ms-2 p-0 d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" onclick="toggleSearchDrawer()" title="Tutup Pencarian" style="width: 42px; height: 42px;">
+                    <i class="fas fa-times text-dark"></i>
+                </button>
+            </form>
+            
+            {{-- Popular Search Suggestions Chips --}}
+            <div class="d-flex align-items-center justify-content-center gap-2 mt-3 flex-wrap small">
+                <span class="text-secondary me-1" style="font-size: 0.82rem;">Populer:</span>
+                <a href="{{ route('public.search') }}?q=liquid" class="badge bg-light text-dark text-decoration-none rounded-pill px-3 py-1.5 border">Liquid</a>
+                <a href="{{ route('public.search') }}?q=saltnic" class="badge bg-light text-dark text-decoration-none rounded-pill px-3 py-1.5 border">Saltnic</a>
+                <a href="{{ route('public.search') }}?q=pod" class="badge bg-light text-dark text-decoration-none rounded-pill px-3 py-1.5 border">Pod System</a>
+                <a href="{{ route('public.search') }}?q=coil" class="badge bg-light text-dark text-decoration-none rounded-pill px-3 py-1.5 border">Coil & Cartridge</a>
             </div>
         </div>
     </div>
 </div>
 
-{{-- SCRIPT KHUSUS NAVBAR - ENHANCED --}}
-<script>
-    const categoriesData = @json($categories ?? collect());
-
-    // Navbar icon hover effects
-    document.querySelectorAll('.navbar-icon').forEach(icon => {
-        icon.addEventListener('mouseover', function() {
-            this.style.background = 'rgba(255,255,255,0.2)';
-            this.style.transform = 'scale(1.08)';
-        });
-        icon.addEventListener('mouseout', function() {
-            this.style.background = 'transparent';
-            this.style.transform = 'scale(1)';
-        });
-    });
-
-    // Navbar burger hover effect
-    document.querySelector('.navbar-burger').addEventListener('mouseover', function() {
-        this.style.background = '#f1f5f9';
-        this.style.transform = 'scale(1.05)';
-    });
-    document.querySelector('.navbar-burger').addEventListener('mouseout', function() {
-        this.style.background = '#ffffff';
-        this.style.transform = 'scale(1)';
-    });
-
-    document.querySelectorAll('.category-item').forEach(item => {
-        item.addEventListener('click', function () {
-            // Hapus status aktif dari semua item kiri
-            document.querySelectorAll('.category-item').forEach(el => {
-                el.style.background = 'transparent';
-                el.style.color = '#333';
-                el.style.borderLeft = '4px solid transparent';
-                el.style.fontWeight = '500';
-            });
-
-            // Tambah status aktif ke yang baru saja diklik
-            this.style.background = 'linear-gradient(135deg, rgba(9, 175, 185, 0.1) 0%, rgba(0, 228, 255, 0.08) 100%)';
-            this.style.color = '#09afb9';
-            this.style.borderLeft = '4px solid #09afb9';
-            this.style.fontWeight = '700';
-
-            const parentId = this.dataset.id;
-            const parent = categoriesData.find(c => c.id == parentId);
-            const children = categoriesData.filter(c => c.parent_id == parentId);
-
-            let html = `<h5 class="fw-bold mb-4 text-dark border-bottom pb-3" style="font-size: 1.2rem; color: #1a1a2e; border-color: rgba(9, 175, 185, 0.2) !important;">${parent.nama_kategori}</h5>`;
-
-            if (children.length > 0) {
-                html += `<div class="row g-2">`;
-                children.forEach((child, index) => {
-                    html += `
-                        <div class="col-12" style="animation: fadeIn 0.3s ease ${index * 0.05}s;">
-                            <a href="/category/${child.slug}" class="text-decoration-none text-muted p-3 d-block rounded-3" style="transition: all 0.3s ease; background: transparent; border-left: 3px solid transparent; margin-left: -3px;">
-                                <i class="fas fa-chevron-right me-2 small opacity-50"></i>
-                                <span style="color: #333; font-weight: 500;">${child.nama_kategori}</span>
-                            </a>
-                        </div>`;
-                });
-                html += `</div>`;
-            } else {
-                html += `
-                    <div class="text-center py-5">
-                        <p class="text-muted">Tidak ada sub-kategori.</p>
-                        <a href="/category/${parent.slug}" class="btn btn-sm rounded-pill mt-2" style="background: linear-gradient(135deg, #09afb9 0%, #00d4ff 100%); color: white; border: none; padding: 8px 20px; transition: all 0.3s ease;">Lihat Semua</a>
-                    </div>`;
-            }
-
-            document.getElementById('childContainer').innerHTML = html;
-
-            // Add hover effects to child items
-            document.querySelectorAll('#childContainer a').forEach(link => {
-                link.addEventListener('mouseover', function() {
-                    this.style.background = 'rgba(9, 175, 185, 0.08)';
-                    this.style.borderLeft = '3px solid #09afb9';
-                    this.style.color = '#09afb9';
-                });
-                link.addEventListener('mouseout', function() {
-                    this.style.background = 'transparent';
-                    this.style.borderLeft = '3px solid transparent';
-                    this.style.color = '#666';
-                });
-            });
-        });
-    });
-
-    // Fetch Offcanvas Cart
-    function loadOffcanvasCart() {
-        const offcanvasBody = document.getElementById('offcanvasCartBody');
-        offcanvasBody.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `;
-        
-        fetch('{{ url("cart/offcanvas") }}', {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'text/html'
-            }
-        })
-        .then(response => {
-            if(response.status === 401) {
-                return '<div class="p-5 text-center"><i class="fas fa-lock fa-3x text-muted mb-3"></i><h5>Silakan login</h5><p class="text-muted">Anda harus login untuk melihat keranjang.</p><a href="/login" class="btn btn-primary rounded-pill mt-2">Login Sekarang</a></div>';
-            }
-            return response.text();
-        })
-        .then(html => {
-            offcanvasBody.innerHTML = html;
-        })
-        .catch(error => {
-            offcanvasBody.innerHTML = '<div class="p-5 text-center text-danger"><i class="fas fa-exclamation-circle fa-3x mb-3"></i><p>Gagal memuat keranjang. Silakan coba lagi.</p></div>';
-        });
-    }
-
-    // Programmatically open offcanvas
-    function openOffcanvasCart() {
-        loadOffcanvasCart();
-        const offcanvasElement = document.getElementById('offcanvasCart');
-        let bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasElement);
-        if (!bsOffcanvas) {
-            bsOffcanvas = new bootstrap.Offcanvas(offcanvasElement);
-        }
-        bsOffcanvas.show();
-    }
-</script>
-
-{{-- Hidden Logout Form --}}
+{{-- Logout Form --}}
 <form id="logoutForm" action="{{ route('logout') }}" method="POST" style="display: none;">
     @csrf
 </form>
 
+{{-- Offcanvas Categories Drawer --}}
+<div class="offcanvas offcanvas-start border-0" tabindex="-1" id="categoryCanvas" style="width: 420px; max-width: 88vw;">
+    <div class="offcanvas-header border-bottom py-3.5 px-4 bg-white">
+        <h6 class="fw-bold mb-0 text-dark text-uppercase tracking-wider fs-7">
+            <i class="fas fa-layer-group text-primary me-2"></i> ALL CATEGORIES
+        </h6>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body d-flex p-0 bg-white">
+        <div class="category-parent-pane bg-slate-50 border-end border-light">
+            <div class="list-group list-group-flush mt-0">
+                @foreach($categories->where('parent_id', null) as $index => $cat)
+                    <button class="list-group-item list-group-item-action border-0 py-3 px-3.5 small fw-semibold text-start text-dark category-item {{ $index === 0 ? 'active' : '' }}" 
+                            data-parent-id="{{ $cat->id }}" 
+                            onclick="switchParentCategory('{{ $cat->id }}', this)">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>{{ $cat->nama_kategori }}</span>
+                            <i class="fas fa-chevron-right fa-xs text-muted ms-1"></i>
+                        </div>
+                    </button>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="category-child-pane p-3.5 flex-grow-1 overflow-y-auto">
+            <div id="childContainer">
+                @foreach($categories->where('parent_id', null) as $index => $cat)
+                    <div class="category-child-group {{ $index === 0 ? '' : 'd-none' }}" id="child-group-{{ $cat->id }}">
+                        <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom border-light">
+                            <h6 class="fw-bold mb-0 text-dark small text-uppercase">{{ $cat->nama_kategori }}</h6>
+                            <a href="{{ route('public.category', $cat->slug) }}" class="small text-primary text-decoration-none fw-semibold">
+                                View All <i class="fas fa-arrow-right ms-1" style="font-size: 0.68rem;"></i>
+                            </a>
+                        </div>
+
+                        <div class="d-flex flex-column gap-1">
+                            @forelse($cat->children as $child)
+                                <a href="{{ route('public.category', $child->slug) }}" class="py-2 px-3 rounded-0 text-decoration-none text-dark small hover-bg-slate transition-all">
+                                    <i class="fas fa-minus text-muted me-2" style="font-size: 0.65rem;"></i> {{ $child->nama_kategori }}
+                                </a>
+                            @empty
+                                <p class="text-muted small py-3 text-center">No sub-categories found.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-    /* === LOGIN BUTTON HOVER === */
-    .navbar-login-btn:hover {
-        background-color: #f1f5f9 !important;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15) !important;
-    }
-    
-    /* === MODERN SEARCH BOX FOCUS EFFECT === */
-    .search-input-wrapper {
-        border-radius: 50px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-        background-color: rgba(255,255,255,0.95);
-    }
-    
-    .search-input-wrapper:focus-within {
-        border-color: #16213e !important;
-        box-shadow: 0 0 15px rgba(22, 33, 62, 0.3) !important;
-        transform: translateY(-1px);
-    }
-    
-    .search-input-wrapper input {
-        border: none !important;
-        box-shadow: none !important;
-    }
+.btn-icon-nav, .theme-toggle-btn {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
 
-    /* === ANIMATIONS === */
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+.btn-icon-nav:hover, .theme-toggle-btn:hover {
+    transform: translateY(-2px);
+    background-color: #e2e8f0 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateX(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
+body.dark-mode .btn-icon-nav,
+body.dark-mode .theme-toggle-btn {
+    background-color: #1e293b !important;
+}
 
-    /* === NAVBAR BADGE === */
-    .badge-counter {
-        background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%);
-        color: white;
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        padding: 0.4em 0.55em;
-        border: 2px solid white;
-        border-radius: 50%;
-        font-size: 0.7rem;
-        font-weight: 700;
-        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
-        animation: pulse 2s infinite;
-    }
+body.dark-mode .btn-icon-nav:hover,
+body.dark-mode .theme-toggle-btn:hover {
+    background-color: #334155 !important;
+}
 
-    @keyframes pulse {
-        0%, 100% {
-            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
-        }
-        50% {
-            box-shadow: 0 2px 15px rgba(220, 53, 69, 0.6);
-        }
-    }
+.hover-underline:hover {
+    text-decoration: underline !important;
+}
 
-    /* === DROPDOWN ITEM HOVER === */
-    .dropdown-item {
-        transition: all 0.3s ease;
-        color: #333;
-        font-weight: 500;
-    }
+.fw-black {
+    font-weight: 900 !important;
+}
 
-    .dropdown-item:hover {
-        background: linear-gradient(135deg, rgba(9, 175, 185, 0.1) 0%, rgba(0, 228, 255, 0.08) 100%);
-        color: #09afb9;
-        padding-left: 2rem;
-    }
+.nav-link:hover {
+    color: #000000 !important;
+    text-decoration: underline;
+}
 
-    .dropdown-item.text-danger:hover {
-        background: rgba(220, 53, 69, 0.1) !important;
-        color: #dc3545 !important;
-    }
+.category-parent-pane {
+    width: 170px;
+    min-width: 140px;
+}
 
-    /* === SEARCH BUTTON HOVER === */
-    .input-group button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 2px 8px rgba(37, 150, 190, 0.3);
-    }
+.category-item.active {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    border-left: 3px solid #000000 !important;
+}
 
-    /* === OFFCANVAS CUSTOM === */
-    .offcanvas {
-        animation: slideIn 0.4s ease;
-    }
+.nav-login-btn {
+    transition: all 0.25s ease !important;
+    color: #ffffff !important;
+}
+.nav-login-btn * {
+    color: #ffffff !important;
+}
+.nav-login-btn:hover {
+    background: linear-gradient(135deg, #078991 0%, #0369a1 100%) !important;
+    box-shadow: 0 4px 14px rgba(9, 175, 185, 0.35) !important;
+    transform: translateY(-1px);
+    color: #ffffff !important;
+}
 
-    @keyframes slideIn {
-        from {
-            transform: translateX(-100%);
-        }
-        to {
-            transform: translateX(0);
-        }
-    }
+.nav-register-btn {
+    transition: all 0.25s ease !important;
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+}
+.nav-register-btn:hover {
+    border-color: #09afb9 !important;
+    color: #09afb9 !important;
+    background-color: #f0fdfa !important;
+}
 
-    /* === MOBILE SEARCH BAR STYLING === */
-    #mobileSearchCollapse {
-        transition: all 0.3s ease;
-    }
+/* DARK MODE STYLING FOR NAVBAR DROPDOWN & BUTTONS */
+body.dark-mode .dropdown-menu,
+html[data-bs-theme="dark"] .dropdown-menu {
+    background-color: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
 
-    /* === RESPONSIVE NAVBAR ELEMENTS === */
-    .navbar-logo {
-        height: 58px;
-        width: auto;
-        max-height: 60px;
-        object-fit: contain;
-        transition: all 0.3s ease;
-    }
+body.dark-mode .nav-register-btn,
+html[data-bs-theme="dark"] .nav-register-btn {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
 
-    @media (max-width: 991px) {
-        .navbar-brand {
-            font-size: 1.5rem !important;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .navbar-logo {
-            height: 42px !important;
-            max-height: 45px !important;
-        }
-        .navbar-burger, .navbar-icon {
-            width: 38px !important;
-            height: 38px !important;
-            border-radius: 10px !important;
-        }
-        .navbar-burger i, .navbar-icon i {
-            font-size: 0.95rem !important;
-        }
-        .navbar {
-            padding: 0.5rem 0 !important;
-        }
-        .navbar .btn-sm.rounded-pill {
-            padding: 6px 14px !important;
-            font-size: 0.8rem !important;
-        }
-    }
-
-    /* === CATEGORY SIDEBAR RESPONSIVE === */
-    .category-parent-pane {
-        width: 180px;
-        min-width: 150px;
-        background: linear-gradient(180deg, #f8f9fa 0%, #e8eef5 100%);
-        border-right: 2px solid rgba(37, 150, 190, 0.1);
-    }
-    
-    .category-child-pane {
-        flex-grow: 1;
-    }
-
-    @media (max-width: 576px) {
-        .category-parent-pane {
-            width: 130px !important;
-            min-width: 120px !important;
-        }
-        .category-item {
-            padding: 12px 10px !important;
-            font-size: 0.85rem !important;
-        }
-        .category-child-pane {
-            padding: 1rem !important;
-        }
-        #childContainer h5 {
-            font-size: 1rem !important;
-            margin-bottom: 1rem !important;
-        }
-        #childContainer a {
-            padding: 8px !important;
-            font-size: 0.85rem !important;
-        }
-    }
+body.dark-mode .nav-register-btn:hover,
+html[data-bs-theme="dark"] .nav-register-btn:hover {
+    border-color: #00d4ff !important;
+    color: #00d4ff !important;
+    background-color: rgba(9, 175, 185, 0.2) !important;
+}
 </style>
+
+<script>
+function toggleSearchDrawer() {
+    const el = document.getElementById('surfeitSearchCollapse');
+    if (!el) return;
+
+    if (el.style.display === 'none' || el.style.display === '') {
+        el.style.display = 'block';
+        setTimeout(() => {
+            const input = document.getElementById('searchInputField');
+            if (input) input.focus();
+        }, 50);
+    } else {
+        el.style.display = 'none';
+    }
+}
+
+document.addEventListener('click', function(e) {
+    const searchPop = document.getElementById('surfeitSearchCollapse');
+    const searchBtn = e.target.closest('[onclick="toggleSearchDrawer()"]');
+    if (searchPop && searchPop.style.display === 'block') {
+        if (!searchPop.contains(e.target) && !searchBtn) {
+            searchPop.style.display = 'none';
+        }
+    }
+});
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-bs-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-bs-theme', next);
+    localStorage.setItem('podgasm_theme', next);
+    
+    updateThemeUI(next);
+}
+
+function updateThemeUI(theme) {
+    const icon = document.getElementById('themeToggleIcon');
+    if (theme === 'dark') {
+        document.documentElement.classList.add('dark-mode');
+        document.body.classList.add('dark-mode');
+        if (icon) {
+            icon.className = 'fas fa-sun text-warning';
+        }
+    } else {
+        document.documentElement.classList.remove('dark-mode');
+        document.body.classList.remove('dark-mode');
+        if (icon) {
+            icon.className = 'fas fa-moon text-dark';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const currentTheme = localStorage.getItem('podgasm_theme') || 'light';
+    updateThemeUI(currentTheme);
+});
+
+function switchParentCategory(parentId, btn) {
+    document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.querySelectorAll('.category-child-group').forEach(group => group.classList.add('d-none'));
+    const targetGroup = document.getElementById('child-group-' + parentId);
+    if (targetGroup) {
+        targetGroup.classList.remove('d-none');
+    }
+}
+</script>

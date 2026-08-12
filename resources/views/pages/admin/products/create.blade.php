@@ -206,12 +206,20 @@
                                             Pilih kategori
                                         </option>
 
-                                        @foreach($categories as $cat)
-
-                                            <option value="{{ $cat->id }}" data-name="{{ strtolower($cat->nama_kategori) }}">
-                                                {{ $cat->nama_kategori }}
-                                            </option>
-
+                                        @foreach($categories->where('parent_id', null) as $parent)
+                                            @if($parent->children->count() > 0)
+                                                <optgroup label="{{ strtoupper($parent->nama_kategori) }}">
+                                                    @foreach($parent->children as $child)
+                                                        <option value="{{ $child->id }}" data-name="{{ strtolower($child->nama_kategori) }}" {{ old('category_id') == $child->id ? 'selected' : '' }}>
+                                                            {{ $child->nama_kategori }}
+                                                        </option>
+                                                    @endforeach
+                                                </optgroup>
+                                            @else
+                                                <option value="{{ $parent->id }}" data-name="{{ strtolower($parent->nama_kategori) }}" {{ old('category_id') == $parent->id ? 'selected' : '' }}>
+                                                    {{ $parent->nama_kategori }}
+                                                </option>
+                                            @endif
                                         @endforeach
 
                                     </select>

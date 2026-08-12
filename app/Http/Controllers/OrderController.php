@@ -52,7 +52,16 @@ class OrderController extends Controller
         $cartCount = $cart ? $cart->items()->sum('quantity') : 0;
         $wishlistCount = session()->get('wishlist') ? count(session()->get('wishlist')) : 0;
 
-        return view('pages.frontend.order-detail', compact('order', 'cartCount', 'wishlistCount'));
+        $snapToken = null;
+        if ($order->isPendingPayment()) {
+            try {
+                $snapToken = app(\App\Services\MidtransService::class)->getSnapToken($order);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Could not generate Snap Token: ' . $e->getMessage());
+            }
+        }
+
+        return view('pages.frontend.order-detail', compact('order', 'cartCount', 'wishlistCount', 'snapToken'));
     }
 
     /**

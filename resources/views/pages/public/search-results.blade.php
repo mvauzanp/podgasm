@@ -1,215 +1,147 @@
 @extends('layouts.frontend')
 
 @section('content')
-<div class="container py-4">
-    {{-- Breadcrumb --}}
+<div class="container-fluid px-lg-5 py-3">
+
+    {{-- Breadcrumb Minimalis dengan Logo Podgasm --}}
     <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Hasil Pencarian</li>
+        <ol class="breadcrumb bg-transparent p-0 mb-0 align-items-center small">
+            <li class="breadcrumb-item">
+                <a href="{{ route('home') }}" class="text-secondary text-decoration-none hover-primary d-inline-flex align-items-center">
+                    <img src="{{ asset('LogoPodgasm.png') }}" alt="Podgasm" style="height: 24px; width: auto;" class="me-1.5 object-fit-contain"> Home
+                </a>
+            </li>
+            <li class="breadcrumb-item text-muted">
+                <i class="fas fa-chevron-right mx-1 opacity-50" style="font-size: 0.65rem;"></i>
+            </li>
+            <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Hasil Pencarian</li>
         </ol>
     </nav>
 
-    <div class="row g-4">
-        {{-- Sidebar Kategori --}}
-        <div class="col-lg-3 d-none d-lg-block">
-            @include('components._category-sidebar')
-        </div>
-
-        {{-- Main Content --}}
-        <div class="col-lg-9 col-12">
-            {{-- Search Bar --}}
-            <div class="mb-4">
-                <form action="{{ route('public.search') }}" method="GET" class="input-group">
-                    <input type="text" 
-                        class="form-control form-control-lg rounded-start-3" 
-                        name="q" 
-                        placeholder="Cari produk..."
-                        value="{{ $query }}"
-                        required>
-                    <button class="btn btn-primary btn-lg rounded-end-3" type="submit">
-                        <i class="fas fa-search me-2"></i> Cari
-                    </button>
-                </form>
-            </div>
-
-            {{-- Results Header --}}
-            <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                    @if($query)
-                        <h3 class="fw-bold m-0">Hasil pencarian untuk "<span class="text-primary">{{ $query }}</span>"</h3>
-                    @else
-                        <h3 class="fw-bold m-0">Cari Produk</h3>
-                    @endif
-                </div>
-                @if(isset($products) && $products->count() > 0)
-                    <span class="badge bg-secondary py-2 px-3">{{ $products->total() }} produk ditemukan</span>
-                @endif
-            </div>
-
-            {{-- Error Message --}}
-            @if(isset($message))
-                <div class="alert alert-info" role="alert">
-                    <i class="fas fa-info-circle me-2"></i> {{ $message }}
-                </div>
-            @endif
-
-            {{-- Products Grid --}}
-            @if(isset($products) && $products->count() > 0)
-                <div class="row g-3 mb-4">
-                    @foreach($products as $product)
-                        <div class="col-6 col-md-4 col-lg-3" style="cursor: pointer;" onclick="window.location.href='{{ route('public.product.show', $product->slug) }}'">
-                            <div class="card h-100 border-0 shadow-sm rounded-3 overflow-hidden" style="transition: all 0.3s ease;">
-                                <div class="bg-light position-relative" style="height: 180px; overflow: hidden;">
-                                    @if($product->gambar)
-                                        <img src="{{ asset('storage/' . $product->gambar) }}" 
-                                            class="w-100 h-100 object-fit-cover">
-                                    @else
-                                        <div class="d-flex align-items-center justify-content-center h-100">
-                                            <i class="fas fa-box fa-3x text-muted opacity-25"></i>
-                                        </div>
-                                    @endif
-                                    
-                                    {{-- Promo Badge --}}
-                                    @if($product->is_promo)
-                                        <span class="badge bg-danger position-absolute top-2 end-2">
-                                            <i class="fas fa-tag me-1"></i> PROMO
-                                        </span>
-                                    @endif
-                                </div>
-                                <div class="card-body p-3">
-                                    <h6 class="card-title fw-bold text-dark">{{ $product->nama_barang }}</h6>
-                                    @php
-                                        $isB2B = auth()->check() && auth()->user()->role === 'branch';
-                                        $b2bPrice = $isB2B ? $product->getB2bPrice(1) : null;
-                                    @endphp
-                                    @if($isB2B && $b2bPrice < $product->harga_jual)
-                                        <p class="text-primary fw-bold mb-2">
-                                            <span class="text-muted text-decoration-line-through small me-1">Rp {{ number_format($product->harga_jual, 0, ',', '.') }}</span>
-                                            Rp {{ number_format($b2bPrice, 0, ',', '.') }} <span class="badge bg-info text-white" style="font-size: 0.65rem;">B2B Price</span>
-                                        </p>
-                                    @else
-                                        <p class="text-primary fw-bold mb-2">Rp {{ number_format($product->harga_jual, 0, ',', '.') }}</p>
-                                    @endif
-                                    
-                                    <div class="mt-auto">
-                                        {{-- Stock Status --}}
-                                        @if($product->stok_aktual <= $product->nilai_ss)
-                                            <span class="badge bg-danger w-100 py-2">Stok Habis / Kritis</span>
-                                        @else
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <small class="text-muted">Tersedia: {{ $product->stok_aktual }}</small>
-                                                <div class="d-flex gap-1">
-                                                    {{-- Wishlist Button --}}
-                                                    <button type="button" 
-                                                       class="btn btn-light btn-sm rounded-circle shadow-sm text-danger wishlist-btn"
-                                                       data-product-id="{{ $product->id }}"
-                                                       onclick="event.stopPropagation();"
-                                                       style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-                                                        <i class="far fa-heart"></i>
-                                                    </button>
-                                                     {{-- Add to Cart Button --}}
-                                                     @if($product->hasVariants())
-                                                         <a href="{{ route('public.product.show', $product->slug) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="event.stopPropagation();">
-                                                             Pilih Varian
-                                                         </a>
-                                                     @else
-                                                         <button class="btn btn-sm btn-primary rounded-pill px-3 add-to-cart-btn" data-product-id="{{ $product->id }}" onclick="event.stopPropagation();">
-                                                             <i class="fas fa-shopping-cart me-1"></i> Beli
-                                                         </button>
-                                                     @endif
-                                                </div>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-
-                {{-- Pagination --}}
-                @if($products->hasPages())
-                    <nav aria-label="Page navigation" class="mt-4">
-                        {{ $products->appends(request()->query())->links() }}
-                    </nav>
-                @endif
+    {{-- HEADER & FORM PENCARIAN --}}
+    <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom border-light flex-wrap gap-3">
+        <div>
+            @if($query)
+                <h2 class="fw-black text-dark mb-1" style="font-size: 2.2rem; letter-spacing: -0.5px;">
+                    Hasil Pencarian "{{ $query }}"
+                </h2>
+                <p class="text-secondary small mb-0">Menampilkan produk yang cocok dengan kata kunci pencarian Anda</p>
             @else
-                {{-- No Results --}}
-                <div class="text-center py-5">
-                    <div class="py-5">
-                        <i class="fas fa-search fa-5x text-muted mb-3"></i>
-                        <h5 class="text-muted">Produk tidak ditemukan</h5>
-                        <p class="text-muted mb-3">
-                            @if($query)
-                                Kami tidak menemukan produk yang cocok dengan "<strong>{{ $query }}</strong>"
-                            @else
-                                Silakan gunakan kolom pencarian di atas untuk mencari produk
-                            @endif
-                        </p>
-                        <a href="{{ route('home') }}" class="btn btn-primary">
-                            <i class="fas fa-arrow-left me-2"></i> Kembali ke Beranda
-                        </a>
-                    </div>
-                </div>
+                <h2 class="fw-black text-dark mb-1" style="font-size: 2.2rem; letter-spacing: -0.5px;">
+                    Pencarian Produk
+                </h2>
             @endif
         </div>
+
+        @if(isset($products) && $products->count() > 0)
+            <div class="text-secondary small fw-normal" style="color: #777777 !important; font-size: 0.92rem;">
+                {{ $products->total() }} Items Ditemukan
+            </div>
+        @endif
     </div>
+
+    {{-- Pesan Peringatan (Jika Query Kurang Dari 2 Karakter) --}}
+    @if(isset($message))
+        <div class="alert alert-info rounded-3 border-0 mb-4 p-3 d-flex align-items-center gap-2">
+            <i class="fas fa-info-circle fs-5"></i>
+            <div>{{ $message }}</div>
+        </div>
+    @endif
+
+    {{-- PRODUCT GRID SURFEIT (4 KOLOM DENGAN KOTAK ABU-ABU FLOATING IMAGE) --}}
+    @if(isset($products) && $products->count() > 0)
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 g-xl-5 mb-5">
+            @foreach($products as $pro)
+            @php
+                $isB2B = auth()->check() && auth()->user()->role === 'branch';
+                $actualPrice = $pro->harga_jual_actual;
+                $b2bPrice = $isB2B ? $pro->getB2bPrice(1) : null;
+            @endphp
+            <div class="col">
+                <div class="surfeit-product-wrapper cursor-pointer" onclick="window.location.href='{{ route('public.product.show', $pro->slug) }}'">
+                    
+                    {{-- KOTAK CONTAINER ABU-ABU TEMPAT GAMBAR MENGAPUNG --}}
+                    <div class="surfeit-image-box position-relative d-flex align-items-center justify-content-center overflow-hidden" 
+                         style="background-color: #f4f4f4; height: 380px; padding: 36px 24px; border-radius: 4px; transition: all 0.3s ease;">
+                        
+                        @if($pro->gambar)
+                            <img src="{{ asset('storage/' . $pro->gambar) }}" 
+                                 alt="{{ $pro->nama_barang }}"
+                                 class="surfeit-floating-img img-fluid"
+                                 style="max-height: 290px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.12)); transition: transform 0.4s ease;">
+                        @else
+                            <div class="text-center text-muted">
+                                <i class="fas fa-box fa-3x opacity-25"></i>
+                            </div>
+                        @endif
+
+                        <button type="button" 
+                                class="btn btn-light btn-sm rounded-circle position-absolute top-0 end-0 m-3 shadow-sm border-0 wishlist-btn"
+                                data-product-id="{{ $pro->id }}"
+                                onclick="event.stopPropagation();"
+                                style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #ffffff;">
+                            <i class="far fa-bookmark text-dark"></i>
+                        </button>
+                    </div>
+
+                    {{-- INFORMASI PRODUK DI LUAR / DI BAWAH KOTAK ABU-ABU --}}
+                    <div class="surfeit-details-box mt-3">
+                        <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 0.95rem; line-height: 1.3; font-family: 'Poppins', sans-serif;" title="{{ $pro->nama_barang }}">
+                            {{ $pro->nama_barang }}
+                        </h6>
+
+                        <div class="text-secondary small mb-1" style="font-size: 0.82rem; color: #64748b !important; font-family: 'Poppins', sans-serif;">
+                            {{ $pro->category ? $pro->category->nama_kategori : 'Podgasm Store' }}
+                        </div>
+
+                        <div class="fw-bold text-dark small mb-1" style="font-size: 0.82rem; color: #1e293b !important;">
+                            {{ $pro->kode_barang ?? 'Original Vape Product' }}
+                        </div>
+
+                        <div class="fw-bold price-text" style="font-size: 0.95rem;">
+                            @if($isB2B && $b2bPrice < $actualPrice)
+                                <span class="text-decoration-line-through text-muted small me-1">Rp {{ number_format($actualPrice, 0, ',', '.') }}</span>
+                                Rp {{ number_format($b2bPrice, 0, ',', '.') }}
+                            @else
+                                {{ $pro->formatted_price }}
+                            @endif
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        {{-- PAGINATION --}}
+        <div class="d-flex justify-content-center mt-4 mb-5">
+            {{ $products->links() }}
+        </div>
+    @else
+        {{-- EMPTY STATE HASIL TIDAK DITEMUKAN --}}
+        <div class="text-center py-5 my-4">
+            <div class="mb-3">
+                <i class="fas fa-search fa-4x text-muted opacity-25"></i>
+            </div>
+            <h4 class="fw-bold text-dark mb-2">Produk Tidak Ditemukan</h4>
+            <p class="text-secondary max-w-md mx-auto mb-4" style="max-width: 450px;">
+                Maaf, tidak ada produk yang cocok dengan kata kunci "<strong>{{ $query }}</strong>". Coba gunakan kata kunci lain seperti <em>liquid, saltnic, pod, atau cartridge</em>.
+            </p>
+            <a href="{{ route('home') }}" class="btn btn-dark rounded-pill px-4 py-2 fw-semibold small">
+                Lihat Semua Produk
+            </a>
+        </div>
+    @endif
+
 </div>
 
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add to cart buttons
-    document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const productId = this.getAttribute('data-product-id');
-            const originalHTML = this.innerHTML;
-            
-            // Add loading state
-            this.disabled = true;
-            this.innerHTML = '<span class="spinner-animation"></span>Menambahkan...';
-            
-            fetch("{{ url('/cart/add') }}/" + productId, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({ quantity: 1 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show success toast
-                    showToast('✓ Produk berhasil ditambahkan ke keranjang!', 'success', 4000);
-                    
-                    // Update cart count if available
-                    if (data.cartCount) {
-                        updateCartCount(data.cartCount);
-                    }
-                    
-                    // Restore button
-                    setTimeout(() => {
-                        this.innerHTML = originalHTML;
-                        this.disabled = false;
-                    }, 1000);
-                } else {
-                    showToast(data.message || 'Gagal menambahkan ke keranjang', 'error');
-                    this.innerHTML = originalHTML;
-                    this.disabled = false;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Terjadi kesalahan saat menambahkan ke keranjang', 'error');
-                this.innerHTML = originalHTML;
-                this.disabled = false;
-            });
-        });
-    });
-});
-</script>
-@endpush
+<style>
+.surfeit-product-wrapper:hover .surfeit-floating-img {
+    transform: translateY(-6px) scale(1.03);
+}
+
+.surfeit-product-wrapper:hover .surfeit-image-box {
+    background-color: #ededed;
+}
+</style>
+@endsection

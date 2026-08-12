@@ -58,32 +58,34 @@
                                     </div>
                                 </td>
 
-                                {{-- Harga --}}
                                 <td class="text-muted small">
                                     Rp {{ number_format($item->price, 0, ',', '.') }}
                                 </td>
 
                                 {{-- Quantity --}}
                                 <td>
-                                    <form action="{{ route('cart.update') }}" method="POST"
-                                          class="d-flex justify-content-center">
-                                        @csrf
-                                        @method('PATCH')
-                                        <input type="hidden" name="id" value="{{ $item->id }}">
-                                        <input type="number"
-                                               name="quantity"
-                                               value="{{ $item->quantity }}"
-                                               min="1"
-                                               max="{{ $item->product_variant_id ? $item->variant->stok_aktual : $item->product->stok_aktual }}"
-                                               class="form-control form-control-sm text-center fw-bold"
-                                               style="width: 70px; border-radius: 8px;"
-                                               oninput="let max = parseInt(this.max); if(this.value && parseInt(this.value) > max) this.value = max; if(this.value && parseInt(this.value) < 1) this.value = 1;"
-                                               onchange="this.form.submit()">
-                                    </form>
+                                    <div class="d-flex justify-content-center align-items-center">
+                                        <div class="input-group input-group-sm" style="width: 110px;">
+                                            <button class="btn btn-outline-secondary btn-decrease" type="button" data-item-id="{{ $item->id }}">
+                                                <i class="fas fa-minus small"></i>
+                                            </button>
+                                            <input type="number"
+                                                   id="qty-input-{{ $item->id }}"
+                                                   data-item-id="{{ $item->id }}"
+                                                   value="{{ $item->quantity }}"
+                                                   min="1"
+                                                   max="{{ $item->product_variant_id ? $item->variant->stok_aktual : $item->product->stok_aktual }}"
+                                                   class="form-control text-center fw-bold cart-qty-input px-1"
+                                                   oninput="let max = parseInt(this.max); if(this.value && parseInt(this.value) > max) this.value = max; if(this.value && parseInt(this.value) < 1) this.value = 1;">
+                                            <button class="btn btn-outline-secondary btn-increase" type="button" data-item-id="{{ $item->id }}">
+                                                <i class="fas fa-plus small"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </td>
 
                                 {{-- Subtotal --}}
-                                <td class="fw-bold text-primary">
+                                <td class="fw-bold text-primary" id="subtotal-item-{{ $item->id }}">
                                     Rp {{ number_format($item->getSubtotal(), 0, ',', '.') }}
                                 </td>
 
@@ -114,7 +116,7 @@
 
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Total Harga</span>
-                    <span>Rp {{ number_format($cart->total_price, 0, ',', '.') }}</span>
+                    <span id="summary-subtotal">Rp {{ number_format($cart->total_price, 0, ',', '.') }}</span>
                 </div>
 
                 <div class="d-flex justify-content-between mb-3">
@@ -126,7 +128,7 @@
 
                 <div class="d-flex justify-content-between mb-4">
                     <span class="fw-bold">Total</span>
-                    <h5 class="text-primary fw-bold mb-0">
+                    <h5 class="text-primary fw-bold mb-0" id="summary-total">
                         Rp {{ number_format($cart->total_price, 0, ',', '.') }}
                     </h5>
                 </div>
@@ -167,4 +169,116 @@
     </div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    function updateQuantityAjax(itemId, newQty) {
+        const qtyInput = document.getElementById('qty-input-' + itemId);
+        if (!qtyInput) return;
+
+        const maxQty = parseInt(qtyInput.getAttribute('max')) || 1000;
+        if (newQty < 1) newQty = 1;
+        if (newQty > maxQty) newQty = maxQty;
+
+        qtyInput.value = newQty;
+        qtyInput.disabled = true;
+
+        fetch("{{ route('cart.update') }}", {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                id: itemId,
+                quantity: newQty
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            qtyInput.disabled = false;
+            if (data.success) {
+                // Update subtotal item
+                const subtotalElem = document.getElementById('subtotal-item-' + itemId);
+                if (subtotalElem && data.itemSubtotalFormatted) {
+                    subtotalElem.textContent = data.itemSubtotalFormatted;
+                }
+
+                // Update total ringkasan
+                const summarySubtotal = document.getElementById('summary-subtotal');
+                const summaryTotal = document.getElementById('summary-total');
+                if (summarySubtotal && data.cartTotalFormatted) {
+                    summarySubtotal.textContent = data.cartTotalFormatted;
+                }
+                if (summaryTotal && data.cartTotalFormatted) {
+                    summaryTotal.textContent = data.cartTotalFormatted;
+                }
+
+                // Update badge cart di navbar jika ada fungsi global
+                if (typeof updateCartCount === 'function' && data.cartCount !== undefined) {
+                    updateCartCount(data.cartCount);
+                }
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast('error', data.message || 'Gagal memperbarui jumlah produk.');
+                } else {
+                    alert(data.message || 'Gagal memperbarui jumlah produk.');
+                }
+            }
+        })
+        .catch(err => {
+            qtyInput.disabled = false;
+            console.error('Cart update error:', err);
+        });
+    }
+
+    // Event listener tombol minus
+    document.querySelectorAll('.btn-decrease').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const itemId = this.getAttribute('data-item-id');
+            const input = document.getElementById('qty-input-' + itemId);
+            if (input) {
+                let currentVal = parseInt(input.value) || 1;
+                if (currentVal > 1) {
+                    updateQuantityAjax(itemId, currentVal - 1);
+                }
+            }
+        });
+    });
+
+    // Event listener tombol plus
+    document.querySelectorAll('.btn-increase').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const itemId = this.getAttribute('data-item-id');
+            const input = document.getElementById('qty-input-' + itemId);
+            if (input) {
+                let currentVal = parseInt(input.value) || 1;
+                let maxQty = parseInt(input.getAttribute('max')) || 1000;
+                if (currentVal < maxQty) {
+                    updateQuantityAjax(itemId, currentVal + 1);
+                }
+            }
+        });
+    });
+
+    // Event listener perubahan input langsung dengan debounce
+    let timeoutId;
+    document.querySelectorAll('.cart-qty-input').forEach(input => {
+        input.addEventListener('change', function () {
+            const itemId = this.getAttribute('data-item-id');
+            const val = parseInt(this.value) || 1;
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                updateQuantityAjax(itemId, val);
+            }, 300);
+        });
+    });
+});
+</script>
+@endpush
 @endsection

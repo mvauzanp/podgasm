@@ -87,6 +87,7 @@ class OrderController extends Controller
         try {
             $order = Order::findOrFail($id);
             $newStatus = OrderStatus::from($request->status);
+            $oldStatus = $order->status instanceof OrderStatus ? $order->status->value : $order->status;
 
             // B2C: Jika status sebelumnya pending_payment dan disetujui (paid/shipped/completed),
             // jalankan confirmPayment() untuk memotong stok.
@@ -95,7 +96,24 @@ class OrderController extends Controller
                     return redirect()->back()->withErrors(['msg' => 'Gagal mengonfirmasi pembayaran: Stok gudang pusat tidak mencukupi.']);
                 }
             } else {
-                $order->update(['status' => $newStatus->value]);
+                \Illuminate\Support\Facades\DB::transaction(function () use ($order, $newStatus, $oldStatus) {
+                    // Jika diubah ke cancelled dari status paid/shipped/completed, kembalikan stok
+                    if ($newStatus === OrderStatus::CANCELLED && in_array($oldStatus, ['paid', 'shipped', 'completed'])) {
+                        foreach ($order->items as $item) {
+                            $product = \App\Models\Product::find($item->product_id);
+                            if ($item->product_variant_id) {
+                                $variant = \App\Models\ProductVariant::find($item->product_variant_id);
+                                if ($variant) {
+                                    $variant->increment('stok_aktual', $item->quantity);
+                                }
+                            }
+                            if ($product) {
+                                $product->increment('stok_aktual', $item->quantity);
+                            }
+                        }
+                    }
+                    $order->update(['status' => $newStatus->value]);
+                });
             }
 
             // Kirim Notifikasi Update Status dengan label Enum

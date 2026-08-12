@@ -164,16 +164,62 @@ class B2BRegistrationController extends Controller
     {
         $this->authorizeAdmin();
 
-        $registration->update([
-            'status' => 'approved',
-            'reviewed_by' => auth()->id(),
-            'reviewed_at' => now(),
-        ]);
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function() use ($registration) {
+                // Cek apakah user sudah ada berdasarkan email
+                $user = User::where('email', $registration->email)->first();
 
-        // TODO: Send approval email to applicant
-        // TODO: Create reseller account / upgrade existing account
+                if ($user) {
+                    // Upgrade user ke reseller
+                    $user->update([
+                        'role' => 'branch',
+                        'b2b_type' => 'reseller',
+                        'phone' => $registration->phone,
+                        'address' => $registration->address,
+                    ]);
+                    $registration->admin_notes = "Akun pembeli yang ada telah di-upgrade ke Reseller B2B.";
+                } else {
+                    // Buat user baru dengan password default acak
+                    $tempPassword = 'reseller' . rand(1000, 9999);
+                    $user = User::create([
+                        'name' => $registration->owner_name,
+                        'email' => $registration->email,
+                        'password' => \Illuminate\Support\Facades\Hash::make($tempPassword),
+                        'role' => 'branch',
+                        'b2b_type' => 'reseller',
+                        'phone' => $registration->phone,
+                        'address' => $registration->address,
+                    ]);
+                    $registration->admin_notes = "Akun baru berhasil dibuat. Password sementara: " . $tempPassword;
+                }
 
-        return back()->with('success', 'Aplikasi B2B disetujui!');
+                $registration->update([
+                    'status' => 'approved',
+                    'user_id' => $user->id,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                    'admin_notes' => $registration->admin_notes,
+                ]);
+
+                // Kirim notifikasi update status ke email (jika mailer terkonfigurasi)
+                try {
+                    $statusMessage = "Selamat! Pendaftaran B2B Reseller Anda telah disetujui. " . 
+                        $registration->admin_notes . " Anda sekarang dapat masuk dan berbelanja dengan harga reseller.";
+                    $user->notify(new \App\Notifications\OrderStatusNotification((object)[
+                        'invoice_number' => 'B2B-APPROVAL',
+                        'total_harga' => 0,
+                        'id' => $registration->id
+                    ], $statusMessage));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Gagal mengirim email notifikasi persetujuan B2B: ' . $e->getMessage());
+                }
+            });
+
+            return back()->with('success', 'Aplikasi B2B disetujui dan akun reseller telah aktif!');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error approving B2B registration: ' . $e->getMessage());
+            return back()->withErrors(['msg' => 'Gagal memproses persetujuan: Terjadi kesalahan sistem.']);
+        }
     }
 
     /**

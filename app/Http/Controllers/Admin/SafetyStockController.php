@@ -42,22 +42,28 @@ class SafetyStockController extends Controller
             }
         }
 
-        // 2. Hitung total penjualan 30 hari untuk klasifikasi ABC
+        // 2. Hitung total penjualan 30 hari dalam satu kueri agregasi tunggal (Mencegah N+1 Queries)
+        $orderItemsGrouped = OrderItem::whereHas('order', function ($query) {
+            $query->whereIn('status', ['paid', 'shipped', 'completed', 'delivered']);
+        })
+        ->where('created_at', '>=', now()->subDays(30))
+        ->select('product_id', 'product_variant_id', DB::raw('SUM(quantity) as total_qty'))
+        ->groupBy('product_id', 'product_variant_id')
+        ->get();
+
+        $salesLookup = [];
         $grandTotalSales = 0;
+        foreach ($orderItemsGrouped as $item) {
+            $key = $item->product_id . '_' . ($item->product_variant_id ?? '0');
+            $salesLookup[$key] = (float) $item->total_qty;
+            $grandTotalSales += (float) $item->total_qty;
+        }
+
         foreach ($skus as &$sku) {
-            $query = OrderItem::whereHas('order', function ($query) {
-                $query->whereIn('status', ['paid', 'shipped', 'completed']);
-            })->where('created_at', '>=', now()->subDays(30));
-
-            if ($sku['type'] === 'simple') {
-                $query->where('product_id', $sku['id'])->whereNull('product_variant_id');
-            } else {
-                $query->where('product_variant_id', $sku['id']);
-            }
-
-            $totalQty = (float) $query->sum('quantity') ?? 0;
-            $sku['sales_qty'] = $totalQty;
-            $grandTotalSales += $totalQty;
+            $key = ($sku['type'] === 'simple') 
+                ? $sku['id'] . '_0' 
+                : $sku['model']->product_id . '_' . $sku['id'];
+            $sku['sales_qty'] = $salesLookup[$key] ?? 0.0;
         }
         unset($sku);
 
@@ -65,6 +71,26 @@ class SafetyStockController extends Controller
         uasort($skus, function ($a, $b) {
             return $b['sales_qty'] <=> $a['sales_qty'];
         });
+
+        // 3. Ambil data penjualan harian 30 hari terakhir dalam satu kueri agregasi (Mencegah N+1 Queries)
+        $dailySalesGrouped = OrderItem::whereHas('order', function ($query) {
+            $query->whereIn('status', ['paid', 'shipped', 'completed', 'delivered']);
+        })
+        ->where('created_at', '>=', now()->subDays(30))
+        ->select(
+            'product_id', 
+            'product_variant_id', 
+            DB::raw('DATE(created_at) as date'), 
+            DB::raw('SUM(quantity) as total_qty')
+        )
+        ->groupBy('product_id', 'product_variant_id', DB::raw('DATE(created_at)'))
+        ->get();
+
+        $dailySalesLookup = [];
+        foreach ($dailySalesGrouped as $item) {
+            $key = $item->product_id . '_' . ($item->product_variant_id ?? '0');
+            $dailySalesLookup[$key][$item->date] = (float) $item->total_qty;
+        }
 
         // Hitung klasifikasi ABC untuk tiap SKU berdasarkan kontribusi kumulatif
         $runningSum = 0;
@@ -90,27 +116,17 @@ class SafetyStockController extends Controller
                 $class = 'C';
             }
 
-            // Ambil data penjualan harian 30 hari terakhir
-            $query = OrderItem::whereHas('order', function ($query) {
-                $query->whereIn('status', ['paid', 'shipped', 'completed']);
-            })->where('created_at', '>=', now()->subDays(30));
+            $key = ($sku['type'] === 'simple') 
+                ? $sku['id'] . '_0' 
+                : $sku['model']->product_id . '_' . $sku['id'];
 
-            if ($sku['type'] === 'simple') {
-                $query->where('product_id', $sku['id'])->whereNull('product_variant_id');
-            } else {
-                $query->where('product_variant_id', $sku['id']);
-            }
-
-            $salesData = $query->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(quantity) as total_qty'))
-                ->groupBy('date')
-                ->pluck('total_qty', 'date')
-                ->toArray();
+            $salesData = $dailySalesLookup[$key] ?? [];
 
             // Buat array daily sales berisi 30 hari penuh
             $dailySales = [];
             for ($i = 29; $i >= 0; $i--) {
                 $dateStr = now()->subDays($i)->format('Y-m-d');
-                $dailySales[$dateStr] = (float)($salesData[$dateStr] ?? 0);
+                $dailySales[$dateStr] = (float)($salesData[$dateStr] ?? 0.0);
             }
 
             // Set data dinamis ke model (di-render ke view)

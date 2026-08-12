@@ -29,7 +29,8 @@ class Order extends Model
         'resi',
         'biteship_order_id',
         'destination_area_id',
-        'status'
+        'status',
+        'snap_token'
     ];
 
 

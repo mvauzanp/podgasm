@@ -48,7 +48,7 @@ class CheckoutRequest extends FormRequest
             'metode_pembayaran' => [
                 'required',
                 'string',
-                'in:cash,transfer,e-wallet,branch_request',
+                'in:midtrans,midtrans_va,midtrans_qris,midtrans_cc,cash,transfer,e-wallet,branch_request',
             ],
             'destination_area_id' => [
                 'nullable',
@@ -69,6 +69,9 @@ class CheckoutRequest extends FormRequest
                 'nullable',
                 'integer',
                 'min:0',
+            ],
+            'age_confirmation' => [
+                'accepted',
             ],
         ];
     }
@@ -98,6 +101,7 @@ class CheckoutRequest extends FormRequest
             'alamat_pengiriman.regex' => 'Alamat pengiriman berisi karakter tidak valid',
             'metode_pembayaran.required' => 'Metode pembayaran harus dipilih',
             'metode_pembayaran.in' => 'Metode pembayaran tidak valid',
+            'age_confirmation.accepted' => 'Anda wajib mengonfirmasi bahwa berusia 21 tahun ke atas untuk melakukan transaksi.',
         ];
     }
 }

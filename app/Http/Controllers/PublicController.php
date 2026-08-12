@@ -78,8 +78,13 @@ class PublicController extends Controller
         // Ambil semua kategori dengan eager load children untuk Navbar & Sidebar
         $categories = Category::with('children')->get();
 
-        // Ambil produk yang termasuk dalam kategori tersebut
-        $products = Product::where('category_id', $category->id)
+        // Ambil ID kategori beserta seluruh ID sub-kategorinya jika ini adalah kategori induk (parent)
+        $categoryIds = $category->children->count() > 0 
+            ? $category->children->pluck('id')->push($category->id)
+            : [$category->id];
+
+        // Ambil produk yang termasuk dalam kategori atau sub-kategorinya
+        $products = Product::whereIn('category_id', $categoryIds)
                             ->latest()
                             ->paginate(12); // Menggunakan pagination agar tidak berat
         
@@ -144,10 +149,10 @@ class PublicController extends Controller
         return view('pages.public.product-detail', compact('product', 'categories', 'relatedProducts', 'inWishlist', 'cartCount', 'wishlistCount'));
     }
 
-    // ✅ PERBAIKAN #6: Search products
+    // ✅ Search products
     public function search(Request $request)
     {
-        $query = $request->input('q', '');
+        $query = trim($request->input('q', ''));
         $categories = Category::with('children')->get();
         
         // Validasi query
@@ -172,11 +177,19 @@ class PublicController extends Controller
                 ->with('message', 'Masukkan minimal 2 karakter untuk pencarian');
         }
         
-        // Search di nama produk dan deskripsi
-        $products = Product::where('name', 'like', '%' . $query . '%')
-                           ->orWhere('description', 'like', '%' . $query . '%')
-                           ->latest()
-                           ->paginate(12);
+        // Search pintar di nama produk, kode barang, deskripsi, dan relasi nama kategori
+        $products = Product::with('category')
+            ->where(function($q) use ($query) {
+                $q->where('nama_barang', 'like', '%' . $query . '%')
+                  ->orWhere('kode_barang', 'like', '%' . $query . '%')
+                  ->orWhere('description', 'like', '%' . $query . '%')
+                  ->orWhereHas('category', function($catQuery) use ($query) {
+                      $catQuery->where('nama_kategori', 'like', '%' . $query . '%');
+                  });
+            })
+            ->latest()
+            ->paginate(12)
+            ->appends(['q' => $query]);
         
         // Hitung cart count
         $cartCount = 0;

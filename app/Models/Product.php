@@ -87,6 +87,7 @@ class Product extends Model
 
     public function getB2bPrice($qty = 1)
     {
+        $basePrice = $this->harga_jual_actual;
         $setting = $this->b2bPriceSettings()
             ->whereNull('product_variant_id')
             ->where('min_qty', '<=', $qty)
@@ -95,23 +96,52 @@ class Product extends Model
 
         if ($setting) {
             if ($setting->discount_type === 'percentage') {
-                return $this->harga_jual - ($this->harga_jual * ($setting->discount_value / 100));
+                return $basePrice - ($basePrice * ($setting->discount_value / 100));
             } else {
-                return $this->harga_jual - $setting->discount_value;
+                return $basePrice - $setting->discount_value;
             }
         }
 
+        return $basePrice;
+    }
+
+    // Get raw actual price (handles fallback to variants min price if base is 0)
+    public function getHargaJualActualAttribute()
+    {
+        if ($this->hasVariants()) {
+            $minPrice = $this->variants()->min('harga_jual');
+            if ($minPrice > 0) {
+                return $minPrice;
+            }
+        }
         return $this->harga_jual;
+    }
+
+    // Get formatted price or range
+    public function getFormattedPriceAttribute()
+    {
+        if ($this->hasVariants()) {
+            $minPrice = $this->variants()->min('harga_jual');
+            $maxPrice = $this->variants()->max('harga_jual');
+            if ($minPrice > 0) {
+                if ($minPrice == $maxPrice) {
+                    return 'Rp ' . number_format($minPrice, 0, ',', '.');
+                }
+                return 'Rp ' . number_format($minPrice, 0, ',', '.') . ' - Rp ' . number_format($maxPrice, 0, ',', '.');
+            }
+        }
+        return 'Rp ' . number_format($this->harga_jual, 0, ',', '.');
     }
 
     // 💰 Harga setelah diskon
     public function getHargaDiskonAttribute()
     {
+        $basePrice = $this->harga_jual_actual;
         if ($this->is_promo) {
-            return $this->harga_jual - ($this->harga_jual * ($this->diskon_persen / 100));
+            return $basePrice - ($basePrice * ($this->diskon_persen / 100));
         }
 
-        return $this->harga_jual;
+        return $basePrice;
     }
 
     protected static function boot()

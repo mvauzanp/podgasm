@@ -34,21 +34,29 @@ class AdminController extends Controller
         $pendingOrdersCount = Order::where('status', 'pending_payment')->count();
         $pendingOrdersValue = Order::where('status', 'pending_payment')->sum('total_harga');
 
-        // ✅ FITUR BARU #2: REVENUE CHART (Last 7 Days)
+        // ✅ FITUR BARU #2: REVENUE CHART (Last 7 Days) - Optimized to 1 aggregation query (No N+1)
+        $startDate = Carbon::now()->subDays(6)->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+
+        $dailyRevenues = Order::where('status', 'paid')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(total_harga) as total')
+            )
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->pluck('total', 'date')
+            ->toArray();
+
         $last7Days = [];
         $revenueData = [];
         for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i)->format('Y-m-d');
-            $day = Carbon::now()->subDays($i)->format('D');
+            $carbonDate = Carbon::now()->subDays($i);
+            $dateStr = $carbonDate->format('Y-m-d');
+            $day = $carbonDate->format('D');
             
             $last7Days[] = $day;
-            
-            // Hitung revenue dari orders yang sudah paid
-            $revenue = Order::where('status', 'paid')
-                        ->whereDate('created_at', $date)
-                        ->sum('total_harga');
-            
-            $revenueData[] = $revenue;
+            $revenueData[] = (float) ($dailyRevenues[$dateStr] ?? 0.0);
         }
 
         // ✅ FITUR BARU #3: TOP 5 SELLING PRODUCTS
@@ -120,14 +128,4 @@ class AdminController extends Controller
         ));
     }
 
-    public function index()
-    {
-        $pendingCount = StockRequest::where('status', 'Pending')->count();
-        
-        if ($pendingCount > 0) {
-            session()->now('warning', "Ada $pendingCount permintaan stok baru yang perlu diproses!");
-        }
-
-        return view('pages.admin.dashboard');
-    }
 }

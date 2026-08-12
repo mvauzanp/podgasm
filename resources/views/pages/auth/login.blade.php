@@ -7,29 +7,36 @@
 <div class="card auth-card shadow-lg border-0 rounded-4 mx-auto" style="max-width: 850px; overflow: hidden;">
     <div class="row g-0">
         
-        {{-- BAGIAN KIRI: Banner/Ilustrasi --}}
-        <div class="col-md-5 d-none d-md-block" style="background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%); padding: 40px; color: white; display: flex; flex-direction: column; justify-content: center;">
+        {{-- BAGIAN KIRI: Banner/Ilustrasi (Logo Putih Terang di Sini) --}}
+        <div class="col-md-5 d-none d-md-block" style="background: linear-gradient(135deg, #09afb9 0%, #0284c7 100%); padding: 45px 35px; color: white; display: flex; flex-direction: column; justify-content: center;">
             <div class="mb-4">
-                <i class="fas fa-boxes fa-3x" style="opacity: 0.8;"></i>
+                <a href="{{ route('home') }}">
+                    <img src="{{ asset('LogoPodgasm.png') }}" 
+                         alt="Podgasm Logo" 
+                         style="height: 56px; width: auto; filter: brightness(0) invert(1) drop-shadow(0 4px 12px rgba(0,0,0,0.18));"
+                         class="object-fit-contain">
+                </a>
             </div>
-            <h2 class="fw-black mb-3" style="font-weight: 800;">PODGASM.</h2>
-            <p class="mb-4" style="font-size: 1rem; opacity: 0.9; line-height: 1.6;">Selamat datang kembali di Sistem Penjualan Multi-Channel Terintegrasi. Kelola inventaris, pantau penjualan, dan penuhi pesanan Anda.</p>
+            <h2 class="fw-black mb-3" style="font-weight: 800; letter-spacing: -0.5px;">PODGASM</h2>
+            <p class="mb-4" style="font-size: 0.95rem; opacity: 0.92; line-height: 1.6;">Selamat datang kembali di Sistem Penjualan Terintegrasi. Kelola inventaris, pantau penjualan retail &amp; grosir Anda.</p>
             <div class="mt-auto">
-                <small style="opacity: 0.7;"><i class="fas fa-shield-alt me-1"></i> Secure Login System</small>
+                <small style="opacity: 0.85;"><i class="fas fa-shield-alt me-1"></i> Secure Login System</small>
             </div>
         </div>
 
         {{-- BAGIAN KANAN: Area Formulir Login --}}
         <div class="col-md-7 p-4 p-md-5 d-flex flex-column justify-content-center">
             
-            {{-- HEADER MOBILE (Hanya muncul di HP) --}}
+            {{-- LOGO HANYA MUNCUL DI TAMPILAN MOBILE (HP) --}}
             <div class="d-md-none text-center mb-4">
-                <h3 class="fw-black text-primary" style="font-weight: 800;">PODGASM</h3>
+                <a href="{{ route('home') }}">
+                    <img src="{{ asset('LogoPodgasm.png') }}" alt="Podgasm Logo" style="height: 48px; width: auto;" class="object-fit-contain">
+                </a>
             </div>
 
             <div class="mb-4 text-center text-md-start">
                 <h4 class="fw-bold text-dark mb-1">Selamat Datang 👋</h4>
-                <p class="text-muted small">Silakan masuk ke akun Anda untuk melanjutkan</p>
+                <p class="text-muted small mb-0">Silakan masuk ke akun Anda untuk melanjutkan</p>
             </div>
 
             {{-- ALERT ERROR (Jika kombinasi email/password salah) --}}

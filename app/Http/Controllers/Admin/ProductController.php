@@ -47,7 +47,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        $categories = Category::all();
+        $categories = Category::with('children')->get();
         return view('pages.admin.products.create', compact('categories'));
     }
 
@@ -85,7 +85,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $categories = Category::all();
+        $categories = Category::with('children')->get();
         // Eager load variants
         $product->load('variants');
         return view('pages.admin.products.edit', compact('product', 'categories'));
