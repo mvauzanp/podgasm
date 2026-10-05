@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Product;
+use App\Traits\LogsActivity;
 
 class BranchStock extends Model
 {
+    use LogsActivity;
+
     protected $fillable = ['user_id', 'product_id', 'product_variant_id', 'stok_lokal'];
 
     public function product() {

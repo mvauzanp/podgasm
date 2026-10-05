@@ -3,68 +3,66 @@
 @section('title', 'Manajemen Kategori')
 
 @section('content_admin')
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid p-0">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
         <div>
-            <h1 class="h3 mb-1 text-gray-800 fw-bold">Manajemen Kategori</h1>
-            <p class="text-muted mb-0" style="font-size: 0.88rem;">Kelola kategori dan sub-kategori produk vape</p>
+            <h4 class="fw-bold mb-0.5 text-dark" style="font-size: 1.25rem;">Manajemen Kategori</h4>
+            <p class="text-muted small mb-0">Kelola kategori dan sub-kategori produk vape</p>
         </div>
-        <a href="{{ route('admin.categories.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
-            <i class="fas fa-plus me-2"></i> Tambah Kategori
-        </a>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1.5 fw-semibold" style="font-size: 0.75rem;">
+                <i class="fas fa-check-circle me-1"></i> Master Kategori Sinkron Olsera
+            </span>
+            <a href="{{ route('admin.olsera.index') }}" class="btn btn-primary btn-sm rounded-3 px-3 py-1.5 shadow-sm" style="font-size: 0.82rem;">
+                <i class="fas fa-rotate me-1.5"></i> Panel Olsera
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
-    <div class="alert alert-success d-flex align-items-center gap-2">
+    <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
         <i class="fas fa-check-circle"></i> {{ session('success') }}
     </div>
     @endif
 
-    <div class="card border-0 shadow-sm rounded-4">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr class="bg-light">
-                            <th class="ps-4 py-3" style="width: 60px;">#</th>
-                            <th class="py-3">Kategori</th>
-                            <th class="py-3">Slug</th>
-                            <th class="py-3 text-center" style="width: 130px;">Sub-Kategori</th>
-                            <th class="py-3 text-center" style="width: 160px;">Aksi</th>
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3 py-2.5" style="width: 50px;">#</th>
+                            <th class="py-2.5">Kategori</th>
+                            <th class="py-2.5">Slug</th>
+                            <th class="py-2.5 text-center" style="width: 120px;">Sub-Kategori</th>
+                            <th class="py-2.5 text-center" style="width: 100px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($categories as $category)
                         {{-- Parent Category Row --}}
-                        <tr>
-                            <td class="ps-4 text-muted fw-semibold">{{ $category->id }}</td>
+                        <tr class="border-top">
+                            <td class="ps-3 text-muted fw-semibold">{{ $category->id }}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="d-inline-flex align-items-center justify-content-center rounded-3" style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-size: 0.85rem;">
+                                    <span class="d-inline-flex align-items-center justify-content-center rounded-2" style="width: 28px; height: 28px; background: linear-gradient(135deg, #0284c7, #38bdf8); color: white; font-size: 0.75rem;">
                                         <i class="fas fa-folder"></i>
                                     </span>
-                                    <span class="fw-bold">{{ $category->nama_kategori }}</span>
+                                    <span class="fw-semibold text-dark">{{ $category->nama_kategori }}</span>
                                 </div>
                             </td>
-                            <td><code class="bg-light text-dark rounded px-2 py-1" style="font-size: 0.82rem;">{{ $category->slug }}</code></td>
+                            <td><code class="bg-light text-dark rounded px-2 py-0.5" style="font-size: 0.75rem;">{{ $category->slug }}</code></td>
                             <td class="text-center">
                                 @if($category->children->count() > 0)
-                                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1">{{ $category->children->count() }} item</span>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">{{ $category->children->count() }} item</span>
                                 @else
-                                    <span class="text-muted" style="font-size: 0.82rem;">—</span>
+                                    <span class="text-muted small">—</span>
                                 @endif
                             </td>
                             <td class="text-center">
-                                <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-sm btn-outline-warning rounded-pill px-3 me-1" title="Edit">
-                                    <i class="fas fa-pen-to-square"></i>
+                                <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5" style="font-size: 0.75rem;" title="Edit Detail">
+                                    <i class="fas fa-pen-to-square me-1"></i> Edit
                                 </a>
-                                <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('Yakin ingin menghapus kategori ini beserta sub-kategorinya?')" title="Hapus">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
                             </td>
                         </tr>
 

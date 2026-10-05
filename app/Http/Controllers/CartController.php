@@ -19,7 +19,11 @@ class CartController extends Controller
     public function offcanvas()
     {
         if (!Auth::check()) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+            return view('components._offcanvas_cart', [
+                'isGuest' => true,
+                'cart' => null,
+                'items' => collect()
+            ]);
         }
 
         $cart = Cart::getOrCreateForUser(Auth::id());
@@ -141,9 +145,9 @@ class CartController extends Controller
             $isB2B = Auth::check() && Auth::user()->role === 'branch';
 
             if ($hasVariants) {
-                $price = $isB2B ? $variant->getB2bPrice($quantity) : $variant->harga_jual_actual;
+                $price = $isB2B ? $variant->getB2bPrice($quantity) : $variant->getTieredPrice($quantity);
             } else {
-                $price = $isB2B ? $product->getB2bPrice($quantity) : $product->harga_jual;
+                $price = $isB2B ? $product->getB2bPrice($quantity) : $product->getTieredPrice($quantity);
             }
             
             // ✅ Validasi stok tersedia
@@ -316,11 +320,20 @@ class CartController extends Controller
             $cartTotal = $item->cart->total_price;
             $cartCount = $item->cart->items()->sum('quantity');
 
+            $originalPrice = $item->getOriginalPrice();
+            $discountPercent = $item->getDiscountPercentage();
+
             if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Keranjang berhasil diperbarui!',
                     'quantity' => $item->quantity,
+                    'unitPrice' => $item->price,
+                    'unitPriceFormatted' => 'Rp ' . number_format($item->price, 0, ',', '.'),
+                    'originalPrice' => $originalPrice,
+                    'originalPriceFormatted' => 'Rp ' . number_format($originalPrice, 0, ',', '.'),
+                    'discountPercent' => $discountPercent,
+                    'hasDiscount' => $discountPercent > 0,
                     'itemSubtotal' => $item->price * $item->quantity,
                     'itemSubtotalFormatted' => 'Rp ' . number_format($item->price * $item->quantity, 0, ',', '.'),
                     'cartTotal' => $cartTotal,

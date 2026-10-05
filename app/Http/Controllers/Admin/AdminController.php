@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use App\Models\Transaction;
-use App\Models\StockRequest;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
@@ -21,7 +19,7 @@ class AdminController extends Controller
         $stokKritis = Product::whereColumn('stok_aktual', '<=', 'nilai_ss')->get();
         $jumlahKritis = $stokKritis->count();
 
-        $totalPenjualan = Transaction::whereDate('created_at', today())->sum('total_harga');
+        $totalPenjualan = Order::where('status', 'paid')->whereDate('created_at', today())->sum('total_harga');
 
         $potensiKerugian = Product::where('tgl_expired', '<', now()->addDays(30))
                                     ->orWhere('tgl_cukai', '<', now()->subYear())
@@ -71,9 +69,10 @@ class AdminController extends Controller
             ->limit(5)
             ->get();
 
-        // ✅ FITUR BARU #4: CUSTOMER ANALYTICS
+        // ✅ FITUR BARU #4: CUSTOMER ANALYTICS & OLSERA STATUS
         $totalCustomers = User::where('role', 'customer')->count();
-        $totalBranches = User::where('role', 'branch')->count();
+        $totalProducts = Product::count();
+        $lastOlseraSync = \Illuminate\Support\Facades\Cache::get('olsera_last_sync_at') ?? 'Belum Sync';
         
         // New customers this month
         $newCustomersThisMonth = User::where('role', 'customer')
@@ -116,7 +115,8 @@ class AdminController extends Controller
             'revenueData',
             'topSellingProducts',
             'totalCustomers',
-            'totalBranches',
+            'totalProducts',
+            'lastOlseraSync',
             'newCustomersThisMonth',
             'almostExpiredProducts',
             'expiredProducts',

@@ -12,25 +12,44 @@ class PublicController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Mengambil semua kategori dengan eager load children untuk Mega Menu
-        $categories = Category::with('children')->get();
+        // 1. Mengambil semua kategori publik dengan eager load children untuk Mega Menu (Filter excluded non-vape)
+        $categories = Category::publicVisible()->with('children')->get();
         
-        // 2. Mengambil produk (Non-Promo) untuk grid utama dengan sorting
-        $query = Product::where('is_promo', false);
+        // 2. Mengambil SEMUA produk publik untuk grid utama dengan sorting & pagination
+        $query = Product::publicVisible();
+
+        // Filter kategori opsional jika ada query ?category=slug
+        if ($request->filled('category')) {
+            $catSlug = $request->query('category');
+            if (in_array($catSlug, Category::EXCLUDED_PUBLIC_SLUGS)) {
+                abort(404);
+            }
+            $query->whereHas('category', function ($q) use ($catSlug) {
+                $q->where('slug', $catSlug);
+            });
+        }
         
-        $sort = $request->query('sort', 'newest');
+        $sort = $request->query('sort', 'default');
         if ($sort === 'price_low') {
             $query->orderBy('harga_jual', 'asc');
         } elseif ($sort === 'price_high') {
             $query->orderBy('harga_jual', 'desc');
-        } else { // default atau 'newest'
+        } elseif ($sort === 'name_asc') {
+            $query->orderBy('nama_barang', 'asc');
+        } elseif ($sort === 'name_desc') {
+            $query->orderBy('nama_barang', 'desc');
+        } elseif ($sort === 'promo') {
+            $query->where('is_promo', true)->orderBy('diskon_persen', 'desc')->latest();
+        } elseif ($sort === 'newest') {
+            $query->latest();
+        } else { // default (mengikuti urutan katalog asli Olsera POS)
             $query->latest();
         }
         
-        $products = $query->take(8)->get();
+        $products = $query->paginate(16)->withQueryString();
 
         // 3. Mengambil produk khusus promo untuk _promo-banner
-        $promoProducts = Product::where('is_promo', true)
+        $promoProducts = Product::publicVisible()->where('is_promo', true)
                                 ->take(4)
                                 ->get();
 
@@ -49,14 +68,14 @@ class PublicController extends Controller
                 $cartCount = $cart->items()->sum('quantity');
             }
         } else {
-            // User belum login: ambil dari session
+            // User belum login (Guest): ambil dari Session
             $cart = session()->get('cart', []);
             foreach ($cart as $item) {
                 $cartCount += $item['quantity'];
             }
         }
-        
-        // 5. Ambil wishlist count
+
+        // 5. ✅ PERBAIKAN #6: Wishlist count
         $wishlistCount = session()->get('wishlist') ? count(session()->get('wishlist')) : 0;
         
         // 6. Kirim semua variabel ke view
@@ -70,23 +89,46 @@ class PublicController extends Controller
         ));
     }
 
-    public function categoryIndex($slug)
+    public function categoryIndex(Request $request, $slug)
     {
-        // Cari kategori berdasarkan slug
-        $category = Category::where('slug', $slug)->firstOrFail();
+        // Tolak akses langsung ke kategori yang dikecualikan (Soft Drink / Minuman)
+        if (in_array($slug, Category::EXCLUDED_PUBLIC_SLUGS)) {
+            abort(404);
+        }
+
+        // Cari kategori berdasarkan slug yang boleh tampil
+        $category = Category::publicVisible()->where('slug', $slug)->firstOrFail();
 
         // Ambil semua kategori dengan eager load children untuk Navbar & Sidebar
-        $categories = Category::with('children')->get();
+        $categories = Category::publicVisible()->with('children')->get();
+        $subCats = Category::publicVisible()->where('parent_id', $category->id)->get();
 
         // Ambil ID kategori beserta seluruh ID sub-kategorinya jika ini adalah kategori induk (parent)
         $categoryIds = $category->children->count() > 0 
             ? $category->children->pluck('id')->push($category->id)
             : [$category->id];
 
-        // Ambil produk yang termasuk dalam kategori atau sub-kategorinya
-        $products = Product::whereIn('category_id', $categoryIds)
-                            ->latest()
-                            ->paginate(12); // Menggunakan pagination agar tidak berat
+        // Ambil produk yang termasuk dalam kategori atau sub-kategorinya dengan sorting
+        $query = Product::publicVisible()->whereIn('category_id', $categoryIds);
+
+        $sort = $request->query('sort', 'default');
+        if ($sort === 'price_low') {
+            $query->orderBy('harga_jual', 'asc');
+        } elseif ($sort === 'price_high') {
+            $query->orderBy('harga_jual', 'desc');
+        } elseif ($sort === 'name_asc') {
+            $query->orderBy('nama_barang', 'asc');
+        } elseif ($sort === 'name_desc') {
+            $query->orderBy('nama_barang', 'desc');
+        } elseif ($sort === 'promo') {
+            $query->where('is_promo', true)->orderBy('diskon_persen', 'desc')->latest();
+        } elseif ($sort === 'newest') {
+            $query->latest();
+        } else { // default (mengikuti urutan katalog asli Olsera POS)
+            $query->latest();
+        }
+
+        $products = $query->paginate(16)->withQueryString();
         
         // Hitung cart count (sama seperti di index)
         $cartCount = 0;
@@ -104,20 +146,20 @@ class PublicController extends Controller
         
         $wishlistCount = session()->get('wishlist') ? count(session()->get('wishlist')) : 0;
 
-        return view('pages.public.catalog', compact('category', 'categories', 'products', 'cartCount', 'wishlistCount'));
+        return view('pages.public.catalog', compact('category', 'categories', 'subCats', 'products', 'cartCount', 'wishlistCount'));
     }
 
     // ✅ PERBAIKAN #6: Product detail page
     public function show($slug)
     {
-        // Cari produk berdasarkan slug dan load reviews
-        $product = Product::with('reviews.user')->where('slug', $slug)->firstOrFail();
+        // Cari produk publik berdasarkan slug dan load reviews
+        $product = Product::publicVisible()->with('reviews.user')->where('slug', $slug)->firstOrFail();
         
         // Ambil semua kategori untuk navbar
-        $categories = Category::with('children')->get();
+        $categories = Category::publicVisible()->with('children')->get();
         
         // Ambil produk serupa (same category, exclude current product)
-        $relatedProducts = Product::where('category_id', $product->category_id)
+        $relatedProducts = Product::publicVisible()->where('category_id', $product->category_id)
                                    ->where('id', '!=', $product->id)
                                    ->latest()
                                    ->take(4)
@@ -153,7 +195,7 @@ class PublicController extends Controller
     public function search(Request $request)
     {
         $query = trim($request->input('q', ''));
-        $categories = Category::with('children')->get();
+        $categories = Category::publicVisible()->with('children')->get();
         
         // Validasi query
         if (strlen($query) < 2) {
@@ -177,18 +219,22 @@ class PublicController extends Controller
                 ->with('message', 'Masukkan minimal 2 karakter untuk pencarian');
         }
         
-        // Search pintar di nama produk, kode barang, deskripsi, dan relasi nama kategori
-        $products = Product::with('category')
+        // Search komprehensif di nama produk, kode barang, deskripsi, relasi kategori, dan SELURUH varian (rasa/warna/SKU)
+        $products = Product::publicVisible()->with(['category', 'variants'])
             ->where(function($q) use ($query) {
                 $q->where('nama_barang', 'like', '%' . $query . '%')
                   ->orWhere('kode_barang', 'like', '%' . $query . '%')
                   ->orWhere('description', 'like', '%' . $query . '%')
                   ->orWhereHas('category', function($catQuery) use ($query) {
                       $catQuery->where('nama_kategori', 'like', '%' . $query . '%');
+                  })
+                  ->orWhereHas('variants', function($varQuery) use ($query) {
+                      $varQuery->where('nama_varian', 'like', '%' . $query . '%')
+                               ->orWhere('kode_barang', 'like', '%' . $query . '%');
                   });
             })
             ->latest()
-            ->paginate(12)
+            ->paginate(16)
             ->appends(['q' => $query]);
         
         // Hitung cart count
@@ -208,5 +254,63 @@ class PublicController extends Controller
         $wishlistCount = session()->get('wishlist') ? count(session()->get('wishlist')) : 0;
         
         return view('pages.public.search-results', compact('categories', 'products', 'query', 'cartCount', 'wishlistCount'));
+    }
+
+    /**
+     * Live AJAX Search endpoint for instant navbar search dropdown
+     */
+    public function liveSearch(Request $request)
+    {
+        $query = trim($request->input('q', ''));
+        if (strlen($query) < 2) {
+            return response()->json(['success' => true, 'products' => []]);
+        }
+
+        $products = Product::publicVisible()->with(['category', 'variants'])
+            ->where(function($q) use ($query) {
+                $q->where('nama_barang', 'like', '%' . $query . '%')
+                  ->orWhere('kode_barang', 'like', '%' . $query . '%')
+                  ->orWhere('description', 'like', '%' . $query . '%')
+                  ->orWhereHas('category', function($catQuery) use ($query) {
+                      $catQuery->where('nama_kategori', 'like', '%' . $query . '%');
+                  })
+                  ->orWhereHas('variants', function($varQuery) use ($query) {
+                      $varQuery->where('nama_varian', 'like', '%' . $query . '%')
+                               ->orWhere('kode_barang', 'like', '%' . $query . '%');
+                  });
+            })
+            ->take(8)
+            ->get()
+            ->map(function($item) use ($query) {
+                // Cari jika ada varian spesifik yang cocok dengan kata kunci
+                $matchingVariant = $item->variants->first(function($v) use ($query) {
+                    return str_contains(strtolower($v->nama_varian), strtolower($query)) 
+                        || str_contains(strtolower($v->kode_barang ?? ''), strtolower($query));
+                });
+
+                $variantName = $matchingVariant ? $matchingVariant->nama_varian : null;
+                $imageUrl = $matchingVariant && $matchingVariant->gambar_url 
+                    ? $matchingVariant->gambar_url 
+                    : ($item->gambar_url ?: null);
+
+                return [
+                    'id' => $item->id,
+                    'name' => $item->nama_barang,
+                    'variant_match' => $variantName,
+                    'slug' => $item->slug,
+                    'url' => route('public.product.show', $item->slug),
+                    'image' => $imageUrl,
+                    'category' => $item->category ? $item->category->nama_kategori : 'Podgasm Store',
+                    'price' => $item->formatted_price,
+                    'stock' => $item->total_stok,
+                    'is_out_of_stock' => $item->total_stok <= 0,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'count' => $products->count(),
+            'products' => $products
+        ]);
     }
 }

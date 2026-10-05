@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use App\Models\Transaction;
+use App\Traits\LogsActivity;
 
 class Order extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'user_id', 
@@ -25,10 +26,14 @@ class Order extends Model
         'alamat_pengiriman', 
         'ongkir',
         'kurir',
+        'courier_company',
+        'courier_type',
         'layanan',
         'resi',
         'biteship_order_id',
         'destination_area_id',
+        'destination_latitude',
+        'destination_longitude',
         'status',
         'snap_token'
     ];

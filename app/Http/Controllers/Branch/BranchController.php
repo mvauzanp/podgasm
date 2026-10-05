@@ -94,6 +94,12 @@ class BranchController extends Controller
         
         $totalStok = BranchStock::where('user_id', $userId)->sum('stok_lokal');
         
+        // Ambil rincian stok barang lokal di cabang ini
+        $branchStocks = BranchStock::with(['product', 'variant'])
+                            ->where('user_id', $userId)
+                            ->where('stok_lokal', '>', 0)
+                            ->get();
+        
         // Kita kirim kategori juga kalau sidebar butuh
         $categories = Category::all();
         
@@ -107,7 +113,52 @@ class BranchController extends Controller
                             ->take(5)
                             ->get();
 
-        // Tambahkan categories di compact biar gak error di layout
-        return view('pages.branch.dashboard', compact('totalStok', 'pendingRequests', 'recentRequests', 'categories'));
+        return view('pages.branch.dashboard', compact('totalStok', 'branchStocks', 'pendingRequests', 'recentRequests', 'categories'));
+    }
+
+    /**
+     * Konfirmasi penerimaan barang di toko cabang (Goods Receipt)
+     */
+    public function confirmReceived($id)
+    {
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            $stockRequest = StockRequest::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->firstOrFail();
+
+            if ($stockRequest->status !== 'Dikirim') {
+                return redirect()->back()->withErrors(['msg' => 'Permintaan ini belum dalam status pengiriman atau sudah diselesaikan sebelumnya.']);
+            }
+
+            // 1. Update status permintaan stok menjadi Selesai
+            $stockRequest->update([
+                'status' => 'Selesai'
+            ]);
+
+            // 2. Tambahkan ke stok fisik lokal cabang
+            $branchStock = BranchStock::firstOrCreate(
+                [
+                    'user_id' => Auth::id(),
+                    'product_id' => $stockRequest->product_id,
+                    'product_variant_id' => $stockRequest->product_variant_id,
+                ],
+                [
+                    'stok_lokal' => 0
+                ]
+            );
+
+            $branchStock->increment('stok_lokal', $stockRequest->jumlah);
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->route('branch.tracking')->with('success', 'Barang berhasil diterima! Stok lokal cabang telah ditambahkan sebanyak ' . $stockRequest->jumlah . ' unit.');
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Error confirming stock received by branch: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['msg' => 'Gagal mengonfirmasi penerimaan barang: Terjadi kesalahan sistem.']);
+        }
     }
 }

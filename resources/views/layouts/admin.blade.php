@@ -18,105 +18,137 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        *{
+        * {
             font-family: 'Poppins', sans-serif;
+            box-sizing: border-box;
         }
 
-        body{
+        html {
+            font-size: 13.5px;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        @media (min-width: 1440px) {
+            html {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 991px) {
+            html {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            html {
+                font-size: 12.5px;
+            }
+        }
+
+        body {
             display: flex;
             min-height: 100vh;
-            background: #f5f7fb;
+            background: #f1f5f9;
+            color: #0f172a;
+            font-size: 0.88rem;
+            line-height: 1.45;
             overflow-x: hidden;
+            position: relative;
         }
 
         /* ================= SIDEBAR ================= */
 
-        .sidebar{
-            width: 270px;
-            background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
             color: white;
             position: sticky;
             top: 0;
             height: 100vh;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.08);
-            z-index: 100;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.12);
+            z-index: 1050;
             display: flex;
             flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .logo-area{
-            padding: 28px 20px;
+        .logo-area {
+            padding: 16px 18px;
             border-bottom: 1px solid rgba(255,255,255,0.08);
             flex-shrink: 0;
         }
 
-        .logo-title{
-            font-size: 1.6rem;
+        .logo-title {
+            font-size: 1.25rem;
             font-weight: 700;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
-        .logo-title span{
-            color: #3b82f6;
+        .logo-title span {
+            color: #38bdf8;
         }
 
-        .logo-subtitle{
-            font-size: 0.85rem;
-            color: #9ca3af;
-            margin-top: 4px;
+        .logo-subtitle {
+            font-size: 0.76rem;
+            color: #94a3b8;
+            margin-top: 2px;
         }
 
-        .nav-menu{
-            padding: 18px 14px;
+        .nav-menu {
+            padding: 12px 10px;
             flex: 1;
             overflow-y: auto;
         }
 
         /* Styling scrollbar nav menu */
         .nav-menu::-webkit-scrollbar {
-            width: 5px;
+            width: 4px;
         }
         .nav-menu::-webkit-scrollbar-track {
             background: transparent;
         }
         .nav-menu::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
         }
 
-        .sidebar .nav-link{
-            color: #d1d5db;
-            padding: 12px 16px;
-            border-radius: 14px;
-            margin-bottom: 6px;
-            transition: all 0.25s ease;
+        .sidebar .nav-link {
+            color: #cbd5e1;
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-bottom: 3px;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: space-between;
             font-weight: 500;
+            font-size: 0.85rem;
         }
 
-        .sidebar .nav-link:hover{
+        .sidebar .nav-link:hover {
             background: rgba(255,255,255,0.08);
             color: white;
-            transform: translateX(4px);
+            transform: translateX(3px);
         }
 
-        .sidebar .nav-link.active{
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
             color: white;
-            box-shadow: 0 6px 16px rgba(37,99,235,0.3);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
         }
 
-        .sidebar .collapse .nav-link.active{
-            background: rgba(59, 130, 246, 0.15) !important;
-            color: #60a5fa !important;
+        .sidebar .collapse .nav-link.active {
+            background: rgba(56, 189, 248, 0.15) !important;
+            color: #38bdf8 !important;
             box-shadow: none !important;
             transform: none !important;
         }
 
-        .sidebar .nav-link i{
-            width: 22px;
+        .sidebar .nav-link i {
+            width: 20px;
+            font-size: 0.9rem;
         }
 
         /* Collapsible Chevron transition */
@@ -127,122 +159,194 @@
             transform: rotate(180deg);
         }
 
-        .badge-notif{
-            font-size: 0.72rem;
-            padding: 5px 9px;
+        .badge-notif {
+            font-size: 0.65rem;
+            padding: 3px 7px;
         }
 
-        .logout-area{
-            padding: 20px 14px;
+        .logout-area {
+            padding: 12px 14px;
             border-top: 1px solid rgba(255,255,255,0.08);
             flex-shrink: 0;
         }
 
-        .logout-btn{
+        .logout-btn {
             color: #f87171 !important;
-            border-radius: 14px;
-            padding: 12px 16px;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
         }
 
-        .logout-btn:hover{
-            background: rgba(248,113,113,0.1);
+        .logout-btn:hover {
+            background: rgba(248,113,113,0.12);
         }
 
         /* ================= CONTENT ================= */
 
-        .content-area{
+        .content-area {
             flex: 1;
-            padding: 24px;
+            min-width: 0;
+            padding: 16px 20px;
+            overflow-x: hidden;
         }
 
         /* ================= NAVBAR ================= */
 
-        .navbar-admin{
+        .navbar-admin {
             background: white;
-            border-radius: 20px;
-            padding: 16px 22px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            border: 1px solid #eef1f5;
+            border-radius: 12px;
+            padding: 10px 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 16px;
         }
 
-        .welcome-text h5{
+        .welcome-text h5 {
             margin: 0;
             font-weight: 700;
-            color: #111827;
+            font-size: 1rem;
+            color: #0f172a;
         }
 
-        .welcome-text p{
+        .welcome-text p {
             margin: 0;
-            color: #6b7280;
-            font-size: 0.9rem;
+            color: #64748b;
+            font-size: 0.78rem;
         }
 
-        .admin-profile{
+        .admin-profile {
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: #f9fafb;
-            padding: 10px 16px;
-            border-radius: 14px;
+            gap: 10px;
+            background: #f8fafc;
+            padding: 6px 12px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
         }
 
-        .admin-profile i{
-            font-size: 1.8rem;
-            color: #2563eb;
+        .admin-profile i {
+            font-size: 1.4rem;
+            color: #0284c7;
         }
 
         /* ================= ALERT ================= */
 
-        .alert{
+        .alert {
             border: none;
-            border-radius: 16px;
-            padding: 16px 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border-radius: 10px;
+            padding: 12px 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            font-size: 0.85rem;
         }
 
-        .alert-danger{
+        .alert-danger {
             background: #fef2f2;
             color: #991b1b;
+            border-left: 4px solid #ef4444;
         }
 
-        .alert-success{
+        .alert-success {
             background: #ecfdf5;
             color: #065f46;
+            border-left: 4px solid #10b981;
         }
 
         /* ================= CONTENT CARD ================= */
 
-        .content-wrapper{
-            margin-top: 22px;
+        .content-wrapper {
             background: white;
-            border-radius: 24px;
-            padding: 24px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-            min-height: 500px;
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+            border: 1px solid #e2e8f0;
+            min-height: 450px;
+        }
+
+        /* Card overrides for admin */
+        .card {
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card-header {
+            padding: 12px 16px;
+            font-size: 0.9rem;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        /* Table overrides for admin */
+        .table {
+            font-size: 0.84rem;
+        }
+
+        .table th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: 600;
+            color: #475569;
+            padding: 10px 12px;
+        }
+
+        .table td {
+            padding: 10px 12px;
+            vertical-align: middle;
+        }
+
+        /* Backdrop for mobile drawer */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 1040;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-backdrop.active {
+            display: block;
+            opacity: 1;
         }
 
         /* ================= RESPONSIVE ================= */
 
-        @media(max-width: 992px){
-
-            .sidebar{
-                width: 85px;
+        @media(max-width: 991px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                z-index: 1050;
             }
 
-            .logo-title,
-            .logo-subtitle,
-            .sidebar .nav-link span,
-            .sidebar .nav-link .menu-text,
-            .badge-notif{
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .content-area {
+                padding: 12px;
+                width: 100%;
+            }
+
+            .content-wrapper {
+                padding: 12px;
+                border-radius: 12px;
+            }
+
+            .welcome-text h5 {
+                font-size: 0.92rem;
+            }
+            .welcome-text p {
                 display: none;
-            }
-
-            .sidebar .nav-link{
-                justify-content: center;
-            }
-
-            .content-area{
-                padding: 16px;
             }
         }
     </style>
@@ -276,73 +380,47 @@
                 </div>
             </a>
 
-            {{-- Kelola Banner --}}
-            <a class="nav-link {{ request()->is('admin/banners*') ? 'active' : '' }}"
-               href="{{ route('admin.banners.index') }}">
+            {{-- Pesanan Masuk (Order Management) --}}
+            <a class="nav-link {{ request()->is('admin/orders*') ? 'active' : '' }}"
+               href="{{ route('admin.orders.index') }}">
                 <div>
-                    <i class="fas fa-images me-2"></i>
-                    <span class="menu-text">Kelola Banner</span>
+                    <i class="fas fa-shopping-cart me-2"></i>
+                    <span class="menu-text">Pesanan Masuk</span>
                 </div>
             </a>
 
-            {{-- SECTION: GROSIR & B2B --}}
-            <div class="menu-category-title text-muted small fw-bold px-3 mt-3 mb-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.72rem; opacity: 0.75;">Grosir & B2B</div>
-            
-            @php
-                $isB2BGroupActive = request()->is('admin/b2b-registrations*') || request()->is('admin/b2b-prices*') || request()->is('admin/stock-requests*');
-            @endphp
-            <div>
-                <a class="nav-link {{ $isB2BGroupActive ? 'active' : '' }}" 
-                   data-bs-toggle="collapse" 
-                   href="#collapseB2B" 
-                   role="button" 
-                   aria-expanded="{{ $isB2BGroupActive ? 'true' : 'false' }}" 
-                   aria-controls="collapseB2B">
-                    <div>
-                        <i class="fas fa-users-gear me-2"></i>
-                        <span class="menu-text">Kemitraan B2B</span>
-                    </div>
-                    <i class="fas fa-chevron-down transition-icon ms-2" style="font-size: 0.8rem;"></i>
-                </a>
-                <div class="collapse {{ $isB2BGroupActive ? 'show' : '' }}" id="collapseB2B">
-                    <div class="ps-3 border-start border-white border-opacity-10 ms-3 mt-1">
-                        <a class="nav-link {{ request()->is('admin/b2b-registrations*') ? 'active' : '' }} py-2 mb-1" href="{{ route('admin.b2b.list') }}" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
-                            <div>
-                                <i class="fas fa-id-card me-2" style="font-size: 0.85rem;"></i>
-                                <span class="menu-text">List User B2B</span>
-                            </div>
-                            @if(isset($pendingB2BCount) && $pendingB2BCount > 0)
-                                <span class="badge bg-warning text-dark rounded-pill badge-notif">
-                                    {{ $pendingB2BCount }}
-                                </span>
-                            @endif
-                        </a>
-                        <a class="nav-link {{ request()->is('admin/b2b-prices*') ? 'active' : '' }} py-2 mb-1" href="{{ route('admin.b2b-prices.index') }}" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
-                            <div>
-                                <i class="fas fa-hand-holding-dollar me-2" style="font-size: 0.85rem;"></i>
-                                <span class="menu-text">Setting Harga B2B</span>
-                            </div>
-                        </a>
-                        <a class="nav-link {{ request()->is('admin/stock-requests*') ? 'active' : '' }} py-2 mb-1" href="{{ route('admin.stock-requests.index') }}" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
-                            <div>
-                                <i class="fas fa-truck-loading me-2" style="font-size: 0.85rem;"></i>
-                                <span class="menu-text">Permintaan Stok</span>
-                            </div>
-                            @if(isset($pendingRequestCount) && $pendingRequestCount > 0)
-                                <span class="badge bg-danger rounded-pill badge-notif">
-                                    {{ $pendingRequestCount }}
-                                </span>
-                            @endif
-                        </a>
-                    </div>
+            {{-- Integrasi Olsera POS & Stok --}}
+            <a class="nav-link {{ request()->is('admin/olsera*') ? 'active' : '' }}"
+               href="{{ route('admin.olsera.index') }}">
+                <div>
+                    <i class="fas fa-cash-register me-2"></i>
+                    <span class="menu-text">Integrasi Olsera POS</span>
                 </div>
-            </div>
+                <span class="badge bg-primary rounded-pill badge-notif" style="font-size: 0.65rem;">API</span>
+            </a>
 
-            {{-- SECTION: STOK & INVENTORI --}}
+            {{-- Monitoring Queue & Failed Jobs --}}
+            <a class="nav-link {{ request()->is('admin/failed-jobs*') ? 'active' : '' }}"
+               href="{{ route('admin.failed-jobs.index') }}">
+                <div>
+                    <i class="fas fa-microchip me-2"></i>
+                    <span class="menu-text">Monitoring Queue</span>
+                </div>
+                @php
+                    $failedCount = \Illuminate\Support\Facades\DB::table('failed_jobs')->count();
+                @endphp
+                @if($failedCount > 0)
+                    <span class="badge bg-danger rounded-pill badge-notif" style="font-size: 0.65rem;">{{ $failedCount }} Gagal</span>
+                @else
+                    <span class="badge bg-success-subtle text-success rounded-pill badge-notif" style="font-size: 0.65rem;">OK</span>
+                @endif
+            </a>
+
+            {{-- SECTION: INVENTORI & PRODUK --}}
             <div class="menu-category-title text-muted small fw-bold px-3 mt-3 mb-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.72rem; opacity: 0.75;">Stok & Inventori</div>
 
             @php
-                $isInventoryGroupActive = request()->is('admin/categories*') || request()->is('admin/products*') || request()->is('admin/restocks*') || request()->is('admin/safety-stock*') || request()->is('admin/reports*');
+                $isInventoryGroupActive = request()->is('admin/categories*') || request()->is('admin/products*') || request()->is('admin/safety-stock*') || request()->is('admin/reports*');
             @endphp
             <div>
                 <a class="nav-link {{ $isInventoryGroupActive ? 'active' : '' }}" 
@@ -353,28 +431,22 @@
                    aria-controls="collapseInventory">
                     <div>
                         <i class="fas fa-boxes-stacked me-2"></i>
-                        <span class="menu-text">Manajemen Stok</span>
+                        <span class="menu-text">Katalog & Stok</span>
                     </div>
                     <i class="fas fa-chevron-down transition-icon ms-2" style="font-size: 0.8rem;"></i>
                 </a>
                 <div class="collapse {{ $isInventoryGroupActive ? 'show' : '' }}" id="collapseInventory">
                     <div class="ps-3 border-start border-white border-opacity-10 ms-3 mt-1">
-                        <a class="nav-link {{ request()->is('admin/categories*') ? 'active' : '' }} py-2 mb-1" href="/admin/categories" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
-                            <div>
-                                <i class="fas fa-tags me-2" style="font-size: 0.85rem;"></i>
-                                <span class="menu-text">Manajemen Kategori</span>
-                            </div>
-                        </a>
                         <a class="nav-link {{ request()->is('admin/products*') ? 'active' : '' }} py-2 mb-1" href="/admin/products" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
                             <div>
-                                <i class="fas fa-boxes-stacked me-2" style="font-size: 0.85rem;"></i>
+                                <i class="fas fa-box-open me-2" style="font-size: 0.85rem;"></i>
                                 <span class="menu-text">Produk & Varian</span>
                             </div>
                         </a>
-                        <a class="nav-link {{ request()->is('admin/restocks*') ? 'active' : '' }} py-2 mb-1" href="/admin/restocks" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
+                        <a class="nav-link {{ request()->is('admin/categories*') ? 'active' : '' }} py-2 mb-1" href="/admin/categories" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
                             <div>
-                                <i class="fas fa-file-import me-2" style="font-size: 0.85rem;"></i>
-                                <span class="menu-text">Barang Masuk</span>
+                                <i class="fas fa-tags me-2" style="font-size: 0.85rem;"></i>
+                                <span class="menu-text">Kategori (Olsera)</span>
                             </div>
                         </a>
                         <a class="nav-link {{ request()->is('admin/safety-stock*') ? 'active' : '' }} py-2 mb-1" href="/admin/safety-stock" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
@@ -393,53 +465,35 @@
                 </div>
             </div>
 
-            {{-- SECTION: RITEL & B2C --}}
-            <div class="menu-category-title text-muted small fw-bold px-3 mt-3 mb-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.72rem; opacity: 0.75;">Ritel & B2C</div>
+            {{-- SECTION: HARGA & PROMOSI --}}
+            <div class="menu-category-title text-muted small fw-bold px-3 mt-3 mb-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.72rem; opacity: 0.75;">Harga & Promosi</div>
 
-            @php
-                $isB2CGroupActive = request()->is('admin/orders*') || request()->is('admin/vouchers*') || request()->is('admin/cs-chats*');
-            @endphp
-            <div>
-                <a class="nav-link {{ $isB2CGroupActive ? 'active' : '' }}" 
-                   data-bs-toggle="collapse" 
-                   href="#collapseB2C" 
-                   role="button" 
-                   aria-expanded="{{ $isB2CGroupActive ? 'true' : 'false' }}" 
-                   aria-controls="collapseB2C">
-                    <div>
-                        <i class="fas fa-shopping-bag me-2"></i>
-                        <span class="menu-text">Pelanggan Ritel</span>
-                    </div>
-                    <i class="fas fa-chevron-down transition-icon ms-2" style="font-size: 0.8rem;"></i>
-                </a>
-                <div class="collapse {{ $isB2CGroupActive ? 'show' : '' }}" id="collapseB2C">
-                    <div class="ps-3 border-start border-white border-opacity-10 ms-3 mt-1">
-                        <a class="nav-link {{ request()->is('admin/orders*') ? 'active' : '' }} py-2 mb-1" href="{{ route('admin.orders.index') }}" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
-                            <div>
-                                <i class="fas fa-shopping-cart me-2" style="font-size: 0.85rem;"></i>
-                                <span class="menu-text">Pesanan</span>
-                            </div>
-                        </a>
-                        <a class="nav-link {{ request()->is('admin/vouchers*') ? 'active' : '' }} py-2 mb-1" href="{{ route('admin.vouchers.index') }}" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
-                            <div>
-                                <i class="fas fa-ticket-alt me-2" style="font-size: 0.85rem;"></i>
-                                <span class="menu-text">Voucher B2C</span>
-                            </div>
-                        </a>
-                        <a class="nav-link {{ request()->is('admin/cs-chats*') ? 'active' : '' }} py-2 mb-1" href="{{ route('admin.cs-chats.index') }}" style="font-size: 0.88rem; background: transparent; box-shadow: none;">
-                            <div>
-                                <i class="fas fa-comments me-2" style="font-size: 0.85rem;"></i>
-                                <span class="menu-text">Chat CS</span>
-                            </div>
-                            @if(isset($unreadCsCount) && $unreadCsCount > 0)
-                                <span class="badge bg-danger rounded-pill badge-notif">
-                                    {{ $unreadCsCount }}
-                                </span>
-                            @endif
-                        </a>
-                    </div>
+            {{-- Setting Diskon Grosir Tier --}}
+            <a class="nav-link {{ request()->is('admin/b2b-prices*') ? 'active' : '' }}"
+               href="{{ route('admin.b2b-prices.index') }}">
+                <div>
+                    <i class="fas fa-hand-holding-dollar me-2"></i>
+                    <span class="menu-text">Diskon Grosir (Tier)</span>
                 </div>
-            </div>
+            </a>
+
+            {{-- Voucher Belanja --}}
+            <a class="nav-link {{ request()->is('admin/vouchers*') ? 'active' : '' }}"
+               href="{{ route('admin.vouchers.index') }}">
+                <div>
+                    <i class="fas fa-ticket-alt me-2"></i>
+                    <span class="menu-text">Voucher Diskon</span>
+                </div>
+            </a>
+
+            {{-- Banner Promo --}}
+            <a class="nav-link {{ request()->is('admin/banners*') ? 'active' : '' }}"
+               href="{{ route('admin.banners.index') }}">
+                <div>
+                    <i class="fas fa-images me-2"></i>
+                    <span class="menu-text">Banner Promo</span>
+                </div>
+            </a>
 
         </div>
 
@@ -462,31 +516,41 @@
 
     </div>
 
+    {{-- Mobile Sidebar Backdrop --}}
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
     {{-- ================= CONTENT ================= --}}
     <div class="content-area">
 
         {{-- Navbar --}}
         <nav class="navbar-admin d-flex justify-content-between align-items-center">
 
-            <div class="welcome-text">
-                <h5>Gudang Pusat Podgasm Surabaya</h5>
-                <p>Sistem Monitoring Persediaan & Distribusi Barang</p>
+            <div class="d-flex align-items-center">
+                {{-- Hamburger Button for Mobile / Tablet --}}
+                <button type="button" class="btn btn-light d-lg-none me-2.5 border px-2.5 py-1.5 shadow-none" id="sidebarToggleBtn" style="border-radius: 8px;" title="Toggle Menu">
+                    <i class="fas fa-bars text-dark"></i>
+                </button>
+
+                <div class="welcome-text">
+                    <h5>Gudang Pusat Podgasm</h5>
+                    <p>Sistem Monitoring Persediaan & Distribusi Barang</p>
+                </div>
             </div>
 
             <div class="admin-profile">
                 <i class="fas fa-circle-user"></i>
 
                 <div>
-                    <div class="fw-semibold">Admin Utama</div>
-                    <small class="text-muted">Warehouse Administrator</small>
+                    <div class="fw-semibold small">{{ Auth::user()->name ?? 'Admin Utama' }}</div>
+                    <small class="text-muted" style="font-size: 0.72rem;">{{ ucfirst(Auth::user()->role ?? 'Admin') }} Podgasm HQ</small>
                 </div>
             </div>
 
         </nav>
 
         {{-- Alert Error --}}
-        @if($errors->any())
-            <div class="alert alert-danger mt-4">
+        @if(isset($errors) && $errors->any())
+            <div class="alert alert-danger mb-3">
                 <ul class="mb-0">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -497,7 +561,7 @@
 
         {{-- Alert Success --}}
         @if(session('success'))
-            <div class="alert alert-success mt-4">
+            <div class="alert alert-success mb-3">
                 {{ session('success') }}
             </div>
         @endif
@@ -513,6 +577,27 @@
 
     {{-- Bootstrap JS --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    {{-- Mobile Sidebar Drawer Script --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('sidebarToggleBtn');
+            const sidebar = document.querySelector('.sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+
+            if (toggleBtn && sidebar && backdrop) {
+                toggleBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    backdrop.classList.toggle('active');
+                });
+
+                backdrop.addEventListener('click', function() {
+                    sidebar.classList.remove('active');
+                    backdrop.classList.remove('active');
+                });
+            }
+        });
+    </script>
 
     {{-- Page-specific scripts --}}
     @stack('scripts')

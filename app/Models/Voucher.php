@@ -66,7 +66,7 @@ class Voucher extends Model
             ];
         }
 
-        if ($this->quota !== null && $this->used_count >= $this->quota) {
+        if ($this->quota !== null && $this->quota <= 0) {
             return [
                 'valid' => false,
                 'message' => 'Kuota penukaran voucher telah habis.'

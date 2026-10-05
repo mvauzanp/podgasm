@@ -1,18 +1,23 @@
 @extends('layouts.admin')
 
 @section('content_admin')
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold m-0 text-dark">Pengaturan Admin</h3>
-        <a href="/admin/dashboard" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i> Kembali
-        </a>
+<div class="container-fluid p-0">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+        <div>
+            <h4 class="fw-bold mb-0.5 text-dark" style="font-size: 1.25rem;">Pengaturan Admin</h4>
+            <p class="text-muted small mb-0">Konfigurasi parameter sistem, inventory, dan integrasi pengiriman</p>
+        </div>
+        <div>
+            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-3 px-3 shadow-sm" style="font-size: 0.8rem;">
+                <i class="fas fa-arrow-left me-1.5"></i> Dashboard
+            </a>
+        </div>
     </div>
 
     @if($errors->any())
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <h6 class="alert-heading fw-bold">Error!</h6>
-        <ul class="mb-0 small">
+    <div class="alert alert-danger alert-dismissible fade show rounded-3 border-0 shadow-sm mb-3" role="alert">
+        <h6 class="alert-heading fw-bold small mb-1">Error!</h6>
+        <ul class="mb-0 small" style="font-size: 0.78rem;">
             @foreach($errors->all() as $error)
                 <li>{{ $error }}</li>
             @endforeach
@@ -22,42 +27,42 @@
     @endif
 
     @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+    <div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm mb-3" role="alert">
+        <i class="fas fa-check-circle me-1.5"></i> {{ session('success') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
 
     <!-- TAB NAVIGATION -->
-    <ul class="nav nav-tabs mb-4" role="tablist">
+    <ul class="nav nav-pills gap-1.5 mb-3 flex-wrap" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-selected="true">
-                <i class="fas fa-cog me-2"></i> Umum
+            <button class="nav-link active btn-sm rounded-pill px-3 py-1.5 fw-semibold" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-selected="true" style="font-size: 0.8rem;">
+                <i class="fas fa-cog me-1.5"></i> Umum
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" aria-selected="false">
-                <i class="fas fa-warehouse me-2"></i> Inventory
+            <button class="nav-link btn-sm rounded-pill px-3 py-1.5 fw-semibold" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" aria-selected="false" style="font-size: 0.8rem;">
+                <i class="fas fa-warehouse me-1.5"></i> Inventory
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab" aria-selected="false">
-                <i class="fas fa-shopping-cart me-2"></i> Penjualan
+            <button class="nav-link btn-sm rounded-pill px-3 py-1.5 fw-semibold" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab" aria-selected="false" style="font-size: 0.8rem;">
+                <i class="fas fa-shopping-cart me-1.5"></i> Penjualan
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab" aria-selected="false">
-                <i class="fas fa-credit-card me-2"></i> Pembayaran
+            <button class="nav-link btn-sm rounded-pill px-3 py-1.5 fw-semibold" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab" aria-selected="false" style="font-size: 0.8rem;">
+                <i class="fas fa-credit-card me-1.5"></i> Pembayaran
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="shipping-tab" data-bs-toggle="tab" data-bs-target="#shipping" type="button" role="tab" aria-selected="false">
-                <i class="fas fa-truck me-2"></i> Pengiriman
+            <button class="nav-link btn-sm rounded-pill px-3 py-1.5 fw-semibold" id="shipping-tab" data-bs-toggle="tab" data-bs-target="#shipping" type="button" role="tab" aria-selected="false" style="font-size: 0.8rem;">
+                <i class="fas fa-truck me-1.5"></i> Pengiriman
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="notification-tab" data-bs-toggle="tab" data-bs-target="#notification" type="button" role="tab" aria-selected="false">
-                <i class="fas fa-bell me-2"></i> Notifikasi
+            <button class="nav-link btn-sm rounded-pill px-3 py-1.5 fw-semibold" id="notification-tab" data-bs-toggle="tab" data-bs-target="#notification" type="button" role="tab" aria-selected="false" style="font-size: 0.8rem;">
+                <i class="fas fa-bell me-1.5"></i> Notifikasi
             </button>
         </li>
     </ul>
@@ -67,8 +72,8 @@
         <!-- 1. PENGATURAN UMUM -->
         <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
             <div class="card border-0 shadow-sm rounded-3">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-4">Pengaturan Umum Sistem</h5>
+                <div class="card-body p-3">
+                    <h6 class="fw-bold mb-3 small">Pengaturan Umum Sistem</h6>
                     <form action="{{ route('admin.settings.updateGeneral') }}" method="POST">
                         @csrf
 

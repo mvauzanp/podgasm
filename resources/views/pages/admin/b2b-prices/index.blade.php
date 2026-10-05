@@ -1,82 +1,84 @@
 @extends('layouts.admin')
 
 @section('content_admin')
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid p-0">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
         <div>
-            <h1 class="h3 text-gray-800 fw-bold">Setting Harga B2B (Grosir)</h1>
-            <p class="text-muted small">Kelola potongan harga khusus B2B (Reseller/Cabang) berdasarkan jumlah minimal pembelian.</p>
+            <h4 class="fw-bold mb-0.5 text-dark" style="font-size: 1.25rem;">Setting Harga B2B (Grosir)</h4>
+            <p class="text-muted small mb-0">Kelola potongan harga khusus B2B (Reseller) berdasarkan jumlah minimal pembelian.</p>
         </div>
-        <a href="{{ route('admin.b2b-prices.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
-            <i class="fas fa-plus me-2"></i> Tambah Setting Harga
-        </a>
+        <div>
+            <a href="{{ route('admin.b2b-prices.create') }}" class="btn btn-primary btn-sm rounded-3 px-3 py-1.5 shadow-sm" style="font-size: 0.82rem;">
+                <i class="fas fa-plus me-1.5"></i> Tambah Setting Harga
+            </a>
+        </div>
     </div>
 
     {{-- Notifikasi Sukses/Gagal --}}
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-4" role="alert">
-            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-3" role="alert">
+            <i class="fas fa-check-circle me-1.5"></i> {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    <div class="card shadow border-0 rounded-4">
+    <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
+                    <thead class="table-light">
                         <tr>
-                            <th class="ps-4 py-3 text-secondary small fw-bold">PRODUK</th>
+                            <th class="ps-3 py-2.5 text-secondary small fw-bold">PRODUK</th>
                             <th class="text-secondary small fw-bold">VARIAN</th>
                             <th class="text-secondary small fw-bold">MINIMAL PEMBELIAN</th>
                             <th class="text-secondary small fw-bold">POTONGAN</th>
-                            <th class="text-end pe-4 text-secondary small fw-bold">AKSI</th>
+                            <th class="text-end pe-3 text-secondary small fw-bold">AKSI</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($settings as $s)
-                        <tr>
-                            <td class="ps-4">
-                                <div class="fw-bold text-dark">{{ $s->product->nama_barang ?? 'Produk Dihapus' }}</div>
-                                <div class="text-muted small">Eceran: Rp {{ number_format($s->product->harga_jual ?? 0, 0, ',', '.') }}</div>
+                        <tr class="border-top">
+                            <td class="ps-3 py-2.5">
+                                <div class="fw-semibold text-dark" style="font-size: 0.84rem;">{{ $s->product->nama_barang ?? 'Produk Dihapus' }}</div>
+                                <div class="text-muted small" style="font-size: 0.72rem;">Eceran: Rp {{ number_format($s->product->harga_jual ?? 0, 0, ',', '.') }}</div>
                             </td>
                             <td>
                                 @if($s->variant)
-                                    <span class="badge bg-info-subtle text-info px-3 py-2 rounded-3">
+                                    <span class="badge bg-info-subtle text-info rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
                                         <i class="fas fa-code-branch me-1"></i> {{ $s->variant->nama_varian }}
                                     </span>
                                 @else
-                                    <span class="badge bg-secondary-subtle text-secondary px-3 py-2 rounded-3">
+                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
                                         Semua Varian
                                     </span>
                                 @endif
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border px-3 py-2 fs-6">
-                                    ≥ {{ $s->min_qty }} Unit
+                                <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1" style="font-size: 0.75rem;">
+                                    &ge; {{ $s->min_qty }} Unit
                                 </span>
                             </td>
                             <td>
                                 @if($s->discount_type === 'percentage')
-                                    <span class="text-success fw-bold fs-5">
+                                    <span class="text-success fw-bold" style="font-size: 0.9rem;">
                                         {{ number_format($s->discount_value, 0) }}%
                                     </span>
-                                    <span class="text-muted small">dari harga eceran</span>
+                                    <span class="text-muted small" style="font-size: 0.72rem;">dari harga eceran</span>
                                 @else
-                                    <span class="text-success fw-bold fs-5">
+                                    <span class="text-success fw-bold" style="font-size: 0.9rem;">
                                         Rp {{ number_format($s->discount_value, 0, ',', '.') }}
                                     </span>
-                                    <span class="text-muted small">per unit</span>
+                                    <span class="text-muted small" style="font-size: 0.72rem;">per unit</span>
                                 @endif
                             </td>
-                            <td class="text-end pe-4">
-                                <a href="{{ route('admin.b2b-prices.edit', $s->id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 me-2">
+                            <td class="text-end pe-3">
+                                <a href="{{ route('admin.b2b-prices.edit', $s->id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5 me-1" style="font-size: 0.75rem;">
                                     Edit
                                 </a>
                                 <form action="{{ route('admin.b2b-prices.destroy', $s->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('Apakah Anda yakin ingin menghapus setting harga ini?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-0.5" style="font-size: 0.75rem;" onclick="return confirm('Apakah Anda yakin ingin menghapus setting harga ini?')">
                                         Hapus
                                     </button>
                                 </form>

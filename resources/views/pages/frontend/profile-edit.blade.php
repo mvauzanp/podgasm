@@ -130,9 +130,15 @@
                                     @error('address')
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
-                                    <small class="text-muted mt-1.5 d-block style-italic" style="font-size: 0.78rem;">
-                                        <i class="fas fa-info-circle me-1"></i> Alamat ini akan digunakan secara otomatis saat Anda melakukan checkout barang.
-                                    </small>
+                                    <div class="mt-2 p-2.5 bg-info-subtle border border-info-subtle rounded-3 d-flex align-items-center justify-content-between">
+                                        <div class="small text-info-emphasis">
+                                            <i class="fas fa-map-marked-alt text-primary me-1"></i>
+                                            <strong>Buku Alamat Pengiriman:</strong> Anda dapat menyimpan banyak alamat (Rumah, Kantor, dll.) di halaman Profil.
+                                        </div>
+                                        <a href="{{ route('profile.show') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold text-nowrap" style="font-size: 0.75rem;">
+                                            Buka Buku Alamat
+                                        </a>
+                                    </div>
                                 </div>
 
                                 <div class="d-flex justify-content-end gap-2 pt-3 border-top">

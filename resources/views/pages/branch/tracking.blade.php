@@ -66,6 +66,14 @@
                                 </span>
                             </td>
                             <td class="text-end pe-4">
+                                @if($r->status === 'Dikirim')
+                                    <form action="{{ route('branch.confirm-received', $r->id) }}" method="POST" class="d-inline me-1" onsubmit="return confirm('Konfirmasi bahwa barang telah tiba dan diterima lengkap di toko cabang?');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-semibold">
+                                            <i class="fas fa-check-circle me-1"></i> Terima Barang
+                                        </button>
+                                    </form>
+                                @endif
                                 <button class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $r->id }}">
                                     Lihat Detail
                                 </button>

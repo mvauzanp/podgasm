@@ -123,9 +123,25 @@ class MidtransService
 
         $transactionStatus = $notif->transaction_status;
         $type = $notif->payment_type;
+        $fraudStatus = $notif->fraud_status ?? null;
         $rawOrderId = $notif->order_id;
         // Parse invoice number jika pernah di-reset dengan suffix timestamp '-R'
         $invoiceNumber = explode('-R', $rawOrderId)[0];
+
+        // 1. Verifikasi Keamanan SHA512 Signature Key Midtrans (Anti-Spoofing Defense)
+        $serverKey = config('services.midtrans.server_key');
+        if (!empty($serverKey) && !empty($notif->signature_key) && !empty($notif->status_code) && !empty($notif->gross_amount)) {
+            $expectedSignature = hash('sha512', $notif->order_id . $notif->status_code . $notif->gross_amount . $serverKey);
+            if (!hash_equals($expectedSignature, (string) $notif->signature_key)) {
+                Log::warning("Midtrans Webhook Security: Invalid signature key received for order {$rawOrderId}. Possible spoofing attempt.", [
+                    'ip' => request()->ip(),
+                ]);
+                return [
+                    'status' => 'error',
+                    'message' => 'Invalid signature key'
+                ];
+            }
+        }
 
         Log::info("Midtrans Notification Received for Invoice: {$rawOrderId} (Clean Invoice: {$invoiceNumber})", [
             'transaction_status' => $transactionStatus,

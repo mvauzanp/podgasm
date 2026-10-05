@@ -122,17 +122,34 @@
 
                     @if($trackingData && isset($trackingData['history']) && count($trackingData['history']) > 0)
                         <div class="mt-4 pt-4 border-top">
-                            <h5 class="fw-bold mb-3"><i class="fas fa-shipping-fast text-primary me-2"></i> Detail Pengiriman Real-Time</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <h5 class="fw-bold mb-0"><i class="fas fa-shipping-fast text-primary me-2"></i> Detail Pengiriman Real-Time</h5>
+                                @if(isset($trackingData['waybill_id']))
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold" onclick="copyResi('{{ $trackingData['waybill_id'] }}')">
+                                            <i class="far fa-copy me-1"></i> Salin Resi
+                                        </button>
+                                        @if(isset($trackingData['tracking_url']) && !empty($trackingData['tracking_url']))
+                                            <a href="{{ $trackingData['tracking_url'] }}" target="_blank" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold text-white">
+                                                <i class="fas fa-external-link-alt me-1"></i> Web Ekspedisi
+                                            </a>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
                             
                             <div class="mb-4 p-3 bg-light rounded-3 small border-0">
-                                <div class="row g-2">
+                                <div class="row g-2 align-items-center">
                                     <div class="col-sm-6">
-                                        <span class="text-muted d-block">Layanan Kurir</span>
-                                        <strong class="text-uppercase text-dark">{{ $trackingData['courier']['name'] }} (Resi: {{ $trackingData['waybill_id'] }})</strong>
+                                        <span class="text-muted d-block" style="font-size: 0.75rem;">Layanan Kurir & Resi</span>
+                                        <div class="d-flex align-items-center gap-2 mt-1">
+                                            <strong class="text-uppercase text-dark">{{ $trackingData['courier']['name'] }}</strong>
+                                            <span class="badge bg-white text-dark border px-2 py-1 font-monospace">{{ $trackingData['waybill_id'] }}</span>
+                                        </div>
                                     </div>
                                     @if(isset($trackingData['driver']) && !empty($trackingData['driver']['name']))
                                     <div class="col-sm-6 text-sm-end">
-                                        <span class="text-muted d-block">Petugas Kurir</span>
+                                        <span class="text-muted d-block" style="font-size: 0.75rem;">Petugas Kurir</span>
                                         <strong class="text-dark">{{ $trackingData['driver']['name'] }} @if(isset($trackingData['driver']['phone'])) ({{ $trackingData['driver']['phone'] }}) @endif</strong>
                                     </div>
                                     @endif
@@ -202,4 +219,28 @@
         </div>
     </div>
 </div>
+
+<script>
+function copyResi(resi) {
+    navigator.clipboard.writeText(resi).then(() => {
+        if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            });
+            Toast.fire({
+                icon: 'success',
+                title: 'Nomor Resi (' + resi + ') tersalin!'
+            });
+        } else {
+            alert('Nomor Resi tersalin!');
+        }
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+}
+</script>
 @endsection

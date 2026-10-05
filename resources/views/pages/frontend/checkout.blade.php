@@ -4,7 +4,7 @@
 @php
     $isB2B = auth()->check() && auth()->user()->role === 'branch';
 @endphp
-<div class="container py-5">
+<div class="container pt-3 pt-md-4 pb-5">
 
     @if ($errors->any())
         <div class="alert alert-danger border-0 rounded-4 shadow-sm mb-4">
@@ -24,7 +24,7 @@
             {{-- 🔥 KIRI: FORM --}}
             <div class="col-lg-8">
 
-                <div class="card border-0 shadow-sm rounded-4 p-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4">
                     <h4 class="fw-bold mb-4">Informasi Pengiriman</h4>
 
                     <div class="row">
@@ -47,36 +47,139 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">No. Telepon</label>
-                        <input type="text" 
-                               name="no_telp" 
-                               class="form-control" 
-                               value="{{ auth()->user()->phone }}"
-                               placeholder="08xxxx" 
-                               required>
+                    {{-- 📍 SECTION ALAMAT PENGIRIMAN DENGAN BUKU ALAMAT BITESHIP --}}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-primary"></i>
+                            <span>Alamat Pengiriman</span>
+                            @if(isset($primaryAddress) && $primaryAddress)
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">
+                                <i class="fas fa-check-circle me-1"></i>Otomatis Terisi
+                            </span>
+                            @endif
+                        </h6>
+                        @if(isset($addresses) && $addresses->count() > 1)
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSelectAddress">
+                            <i class="fas fa-exchange-alt me-1"></i> Ganti Alamat ({{ $addresses->count() }})
+                        </button>
+                        @elseif(isset($addresses) && $addresses->count() === 1)
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalSelectAddress">
+                            <i class="fas fa-list me-1"></i> Buku Alamat
+                        </button>
+                        @endif
                     </div>
 
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold">Alamat Lengkap</label>
-                        <textarea name="alamat_pengiriman" 
-                                  class="form-control" 
-                                  rows="3" 
-                                  required>{{ auth()->user()->address }}</textarea>
-                    </div>
+                    @if(isset($addresses) && $addresses->isNotEmpty())
+                        {{-- KARTU ALAMAT TERSIMPAN AKTIF --}}
+                        <div class="card address-card-item is-primary rounded-4 mb-4 position-relative shadow-2xs" style="padding: 20px 22px !important;" id="active_address_card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge rounded-pill px-2.5 py-1 fw-bold badge-theme-label" style="background-color: #0f172a; color: #ffffff;" id="active_address_label">
+                                        <i class="fas fa-tag me-1 text-white-50"></i>{{ $primaryAddress->label ?? 'Utama' }}
+                                    </span>
+                                    <span class="badge rounded-pill px-2 py-0.5 fw-semibold" style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 0.68rem;" id="active_address_badge">
+                                        <i class="fas fa-check-circle me-1"></i>Alamat Pilihan
+                                    </span>
+                                </div>
+                                <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#modalSelectAddress">
+                                    Ganti Alamat <i class="fas fa-chevron-right ms-0.5" style="font-size: 0.65rem;"></i>
+                                </button>
+                            </div>
 
-                    @if(!$isB2B)
-                        <!-- Autocomplete Area Biteship -->
-                        <div class="mb-3 position-relative">
-                            <label class="form-label small fw-bold"><i class="fas fa-map-marker-alt text-primary me-1"></i> Kota / Kecamatan Tujuan</label>
-                            <input type="text" id="area_search_input" class="form-control rounded-3" placeholder="Ketik minimal 3 huruf kecamatan atau kota..." autocomplete="off" required>
-                            <div id="area_suggestions" class="list-group position-absolute w-100 shadow rounded-3 d-none" style="z-index: 1050; max-height: 200px; overflow-y: auto; background: white;"></div>
-                            <input type="hidden" name="destination_area_id" id="destination_area_id">
+                            <div class="mb-2">
+                                <strong class="text-dark d-block" style="font-size: 0.98rem;" id="active_recipient_name">{{ $primaryAddress->recipient_name ?? auth()->user()->name }}</strong>
+                                <small class="text-muted d-block mt-0.5" id="active_recipient_phone"><i class="fas fa-phone-alt me-1 text-secondary" style="font-size: 0.75rem;"></i>{{ $primaryAddress->phone ?? auth()->user()->phone }}</small>
+                            </div>
+
+                            <p class="text-secondary small mb-3 leading-relaxed" style="font-size: 0.86rem;" id="active_street_address">
+                                {{ $primaryAddress->address ?? auth()->user()->address }}
+                            </p>
+
+                            <div class="p-2.5 rounded-3 d-flex align-items-center gap-2 mt-auto verified-area-box">
+                                <i class="fas fa-map-pin text-secondary flex-shrink-0" style="font-size: 0.85rem;"></i>
+                                <div class="overflow-hidden">
+                                    <small class="d-block fw-semibold text-truncate area-title" style="font-size: 0.8rem;" id="active_biteship_name">
+                                        {{ $primaryAddress->biteship_area_name ?? 'Wilayah Pengiriman' }}
+                                    </small>
+                                    @if($primaryAddress && $primaryAddress->postal_code)
+                                    <small class="d-block area-postal" style="font-size: 0.72rem;" id="active_postal_code">Kode Pos: {{ $primaryAddress->postal_code }}</small>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
 
+                        {{-- Hidden inputs yang disinkronkan dengan alamat terpilih --}}
+                        <input type="hidden" name="nama_penerima" id="checkout_nama_penerima" value="{{ $primaryAddress->recipient_name ?? auth()->user()->name }}">
+                        <input type="hidden" name="no_telp" id="checkout_no_telp" value="{{ $primaryAddress->phone ?? auth()->user()->phone }}">
+                        <input type="hidden" name="alamat_pengiriman" id="checkout_alamat_pengiriman" value="{{ $primaryAddress->address ?? auth()->user()->address }}">
+                        <input type="hidden" id="area_search_input" value="{{ $primaryAddress->biteship_area_name ?? '' }}">
+                        <input type="hidden" name="destination_area_id" id="destination_area_id" value="{{ $primaryAddress->biteship_area_id ?? '' }}">
+                        <input type="hidden" name="destination_latitude" id="destination_latitude" value="{{ $primaryAddress->latitude ?? '' }}">
+                        <input type="hidden" name="destination_longitude" id="destination_longitude" value="{{ $primaryAddress->longitude ?? '' }}">
+                        <input type="hidden" name="courier_company" id="selected_courier_company">
+                        <input type="hidden" name="courier_type" id="selected_courier_type">
+
+                    @else
+                        {{-- FORM INPUT MANUAL JIKA BELUM ADA ALAMAT TERSIMPAN --}}
+                        <div class="alert alert-info py-2.5 px-3 rounded-3 small d-flex align-items-center justify-content-between mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-info-circle text-primary fs-6"></i>
+                                <span>Simpan alamat di profil untuk kemudahan checkout otomatis di masa depan.</span>
+                            </div>
+                            <a href="{{ route('profile.show') }}" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">Buka Profil</a>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Nama Penerima <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   name="nama_penerima" 
+                                   id="checkout_nama_penerima"
+                                   class="form-control rounded-3" 
+                                   value="{{ auth()->user()->name }}" 
+                                   required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">No. Telepon / WhatsApp <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   name="no_telp" 
+                                   id="checkout_no_telp"
+                                   class="form-control rounded-3" 
+                                   value="{{ auth()->user()->phone }}"
+                                   placeholder="08xxxx" 
+                                   required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Alamat Jalan &amp; Nomor Rumah <span class="text-danger">*</span></label>
+                            <textarea name="alamat_pengiriman" 
+                                      id="checkout_alamat_pengiriman"
+                                      class="form-control rounded-3" 
+                                      rows="2" 
+                                      placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan..."
+                                      required>{{ auth()->user()->address }}</textarea>
+                        </div>
+
+                        @if(!$isB2B)
+                            <!-- Autocomplete Area -->
+                            <div class="mb-3 position-relative">
+                                <label class="form-label small fw-bold"><i class="fas fa-map-marker-alt text-primary me-1"></i> Kota / Kecamatan Tujuan <span class="text-danger">*</span></label>
+                                <input type="text" id="area_search_input" class="form-control rounded-3" placeholder="Ketik minimal 3 huruf kecamatan atau kota..." autocomplete="off" required>
+                                <div id="area_suggestions" class="list-group position-absolute w-100 shadow rounded-3 d-none" style="z-index: 1050; max-height: 200px; overflow-y: auto; background: white;"></div>
+                                <input type="hidden" name="destination_area_id" id="destination_area_id">
+                            </div>
+                        @endif
+                    @endif
+
+                    @if(!$isB2B)
                         <!-- Opsi Kurir & Ongkir -->
                         <div class="mb-4 d-none" id="shipping_options_container">
-                            <label class="form-label small fw-bold"><i class="fas fa-shipping-fast text-primary me-1"></i> Pilih Layanan Pengiriman</label>
+                            <label class="form-label small fw-bold text-dark d-flex align-items-center justify-content-between">
+                                <span><i class="fas fa-shipping-fast text-primary me-1"></i> Pilih Layanan Pengiriman Kurir</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">
+                                    Tarif Resmi Ekspedisi
+                                </span>
+                            </label>
                             <div id="shipping_rates_list" class="row g-2">
                                 <!-- Diisi dinamis via JS -->
                             </div>
@@ -219,6 +322,59 @@
                             .payment-radio:checked + .payment-card .uncheck {
                                 display: none !important;
                             }
+
+                            /* 📌 STICKY ORDER SUMMARY DESKTOP */
+                            @media (min-width: 992px) {
+                                .checkout-sticky-summary {
+                                    position: -webkit-sticky;
+                                    position: sticky;
+                                    top: 96px;
+                                    z-index: 20;
+                                }
+                            }
+                            .checkout-items-scroll {
+                                max-height: 220px;
+                                overflow-y: auto;
+                                padding-right: 4px;
+                            }
+                            .checkout-items-scroll::-webkit-scrollbar {
+                                width: 4px;
+                            }
+                            .checkout-items-scroll::-webkit-scrollbar-track {
+                                background: transparent;
+                            }
+                            .checkout-items-scroll::-webkit-scrollbar-thumb {
+                                background: rgba(0, 0, 0, 0.15);
+                                border-radius: 4px;
+                            }
+                            body.dark-mode .checkout-items-scroll::-webkit-scrollbar-thumb,
+                            html[data-bs-theme="dark"] .checkout-items-scroll::-webkit-scrollbar-thumb {
+                                background: rgba(255, 255, 255, 0.2);
+                            }
+
+                            /* Dark Mode Overrides for Checkout Summary */
+                            body.dark-mode .checkout-summary-card,
+                            html[data-bs-theme="dark"] .checkout-summary-card {
+                                background-color: #182234 !important;
+                                border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                                color: #f8fafc !important;
+                            }
+                            body.dark-mode .checkout-summary-card .text-dark,
+                            html[data-bs-theme="dark"] .checkout-summary-card .text-dark {
+                                color: #f8fafc !important;
+                            }
+                            body.dark-mode .checkout-summary-card hr,
+                            html[data-bs-theme="dark"] .checkout-summary-card hr {
+                                border-color: rgba(255, 255, 255, 0.08) !important;
+                            }
+                            body.dark-mode .checkout-summary-card .border-light-subtle,
+                            html[data-bs-theme="dark"] .checkout-summary-card .border-light-subtle {
+                                border-color: rgba(255, 255, 255, 0.08) !important;
+                            }
+                            body.dark-mode .checkout-summary-card .bg-light,
+                            html[data-bs-theme="dark"] .checkout-summary-card .bg-light {
+                                background-color: #0f172a !important;
+                            }
                         </style>
 
                         <div class="card border border-warning bg-warning bg-opacity-10 rounded-4 p-3 mt-4 mb-3">
@@ -231,111 +387,227 @@
                             </div>
                         </div>
 
-                        <div class="alert alert-light border rounded-4 small p-3 d-flex align-items-center text-muted">
-                            <i class="fas fa-info-circle text-primary fa-lg me-3"></i>
+                        <div class="alert alert-light border rounded-4 small p-3 d-flex align-items-center text-muted mb-0">
+                            <i class="fas fa-shield-alt text-primary fa-lg me-3"></i>
                             <div>
-                                Pembayaran diproses secara otomatis dan aman. Silakan klik tombol di bawah untuk melanjutkan.
+                                Data transaksi Anda terlindungi enkripsi SSL 256-bit. Periksa rincian biaya di panel ringkasan, lalu klik <strong>Buat Pesanan Sekarang</strong>.
                             </div>
                         </div>
-
-                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg mt-2" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
-                            <i class="fas fa-shield-alt me-2"></i> Buat Pesanan Sekarang
-                        </button>
                     @else
                         <input type="hidden" name="metode_pembayaran" value="branch_request">
                         
-                        <div class="alert alert-success border-0 small mt-4 p-3 rounded-3 bg-opacity-10" style="background-color: #e6f7ef; color: #1b8a5a;">
+                        <div class="alert alert-success border-0 small mt-4 p-3 rounded-3 bg-opacity-10 mb-0" style="background-color: #e6f7ef; color: #1b8a5a;">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Info Pengajuan B2B:</strong> Sebagai akun cabang, pengajuan barang ini tidak memerlukan pembayaran. Setelah dikirim, Admin akan segera memverifikasi dan memproses pengiriman barang ke cabang Anda.
+                            <strong>Info Pengajuan B2B:</strong> Sebagai akun cabang, pengajuan barang ini tidak memerlukan pembayaran langsung. Setelah dikirim, Admin akan segera memverifikasi dan memproses pengiriman barang ke cabang Anda.
                         </div>
-
-                        <button type="submit" class="btn btn-success w-100 py-3 rounded-pill fw-bold shadow-sm">
-                            <i class="fas fa-paper-plane me-2"></i> Kirim Permintaan Barang
-                        </button>
                     @endif
                 </div>
 
             </div>
 
 
-            {{-- 🔥 KANAN: RINGKASAN --}}
+            {{-- 🔥 KANAN: RINGKASAN BELANJA (STICKY DESKTOP) --}}
             <div class="col-lg-4">
-
-                <div class="card border-0 shadow-sm rounded-4 p-4">
-                    <h5 class="fw-bold mb-3">Ringkasan Belanja</h5>
-
-                    @foreach($items as $item)
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="small text-truncate" style="max-width: 70%;" title="{{ $item->product->nama_barang }}{{ $item->variant ? ' (' . $item->variant->nama_varian . ')' : '' }}">
-                                {{ $item->product->nama_barang }}
-                                @if($item->variant)
-                                    <small class="text-muted d-block">Varian: {{ $item->variant->nama_varian }}</small>
-                                @endif
-                                (x{{ $item->quantity }})
-                            </span>
-                            <span class="small">
-                                Rp {{ number_format($item->getSubtotal(), 0, ',', '.') }}
+                <div class="checkout-sticky-summary position-relative">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 checkout-summary-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0">Ringkasan Belanja</h5>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                                {{ $items->sum('quantity') }} Item
                             </span>
                         </div>
-                    @endforeach
 
-                    <hr>
+                        {{-- 📜 Scrollable Items List (Mencegah Viewport Clipping) --}}
+                        <div class="checkout-items-scroll mb-2">
+                            @foreach($items as $item)
+                                <div class="d-flex justify-content-between align-items-center mb-2.5 pb-2 border-bottom border-light-subtle">
+                                    <div class="d-flex align-items-center gap-2.5 min-w-0" style="max-width: 68%;">
+                                        <div class="rounded-3 overflow-hidden bg-light flex-shrink-0 border" style="width: 44px; height: 44px;">
+                                            <img src="{{ $item->product->gambar_url }}" 
+                                                 class="w-100 h-100 object-fit-cover" 
+                                                 alt="{{ $item->product->nama_barang }}"
+                                                 onerror="this.src='https://placehold.co/88x88?text=Podgasm'">
+                                        </div>
+                                        <div class="min-w-0">
+                                            <span class="small fw-semibold text-truncate d-block text-dark" style="font-size: 0.84rem; line-height: 1.25;" title="{{ $item->product->nama_barang }}">
+                                                {{ $item->product->nama_barang }}
+                                            </span>
+                                            @if($item->variant)
+                                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Varian: {{ $item->variant->nama_varian }}</small>
+                                            @endif
+                                            <small class="text-muted" style="font-size: 0.72rem;">x{{ $item->quantity }} unit</small>
+                                        </div>
+                                    </div>
+                                    <div class="text-end flex-shrink-0">
+                                        <span class="small fw-bold text-dark" style="font-size: 0.85rem;">
+                                            Rp {{ number_format($item->getSubtotal(), 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
 
-                    @if(!$isB2B)
-                        {{-- Voucher Code Box --}}
-                        <div class="mb-3 mt-2">
-                            <label class="form-label small fw-bold"><i class="fas fa-ticket-alt me-1 text-primary"></i>Mempunyai Kode Voucher?</label>
-                            <div class="input-group">
-                                <input type="text" id="voucher_code_input" class="form-control text-uppercase" placeholder="Masukkan Kode Voucher" value="{{ $voucher ? $voucher->code : '' }}" {{ $voucher ? 'disabled' : '' }}>
-                                <button class="btn {{ $voucher ? 'btn-danger' : 'btn-primary' }}" type="button" id="btn_apply_voucher">
-                                    {{ $voucher ? 'Batalkan' : 'Terapkan' }}
-                                </button>
+                        <hr class="my-3">
+
+                        @if(!$isB2B)
+                            {{-- Voucher Code Box --}}
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold"><i class="fas fa-ticket-alt me-1 text-primary"></i>Mempunyai Kode Voucher?</label>
+                                <div class="input-group">
+                                    <input type="text" id="voucher_code_input" class="form-control text-uppercase" placeholder="Masukkan Kode Voucher" value="{{ $voucher ? $voucher->code : '' }}" {{ $voucher ? 'disabled' : '' }}>
+                                    <button class="btn {{ $voucher ? 'btn-danger' : 'btn-primary' }}" type="button" id="btn_apply_voucher">
+                                        {{ $voucher ? 'Batalkan' : 'Terapkan' }}
+                                    </button>
+                                </div>
+                                <div id="voucher_message" class="small mt-1 {{ $voucherError ? 'text-danger' : ($voucher ? 'text-success' : '') }}">
+                                    @if($voucher)
+                                        Voucher {{ $voucher->code }} berhasil diterapkan! (Potongan Rp {{ number_format($discount, 0, ',', '.') }})
+                                    @elseif($voucherError)
+                                        {{ $voucherError }}
+                                    @endif
+                                </div>
                             </div>
-                            <div id="voucher_message" class="small mt-1 {{ $voucherError ? 'text-danger' : ($voucher ? 'text-success' : '') }}">
-                                @if($voucher)
-                                    Voucher {{ $voucher->code }} berhasil diterapkan! (Potongan Rp {{ number_format($discount, 0, ',', '.') }})
-                                @elseif($voucherError)
-                                    {{ $voucherError }}
-                                @endif
+                            <hr class="my-3">
+                        @endif
+
+                        <div class="d-flex justify-content-between mb-2 small text-muted">
+                            <span>Subtotal Belanja</span>
+                            <span>Rp {{ number_format($cart->total_price, 0, ',', '.') }}</span>
+                        </div>
+
+                        @if(!$isB2B)
+                            <div class="d-flex justify-content-between mb-2 small text-muted d-none" id="shipping_cost_row">
+                                <span>Ongkos Kirim</span>
+                                <span id="shipping_cost_val">Rp 0</span>
                             </div>
-                        </div>
-                        <hr>
-                    @endif
+                        @endif
 
-                    <div class="d-flex justify-content-between mb-2 small text-muted">
-                        <span>Subtotal Belanja</span>
-                        <span>Rp {{ number_format($cart->total_price, 0, ',', '.') }}</span>
+                        @if(!$isB2B)
+                            <div class="d-flex justify-content-between mb-2 text-success small" id="voucher_discount_row" style="display: {{ $voucher ? 'flex' : 'none' }} !important;">
+                                <span id="voucher_discount_label">{{ $voucher && $voucher->type === 'shipping_subsidy' ? 'Subsidi Ongkir' : 'Potongan Voucher' }}</span>
+                                <span id="voucher_discount_val">-Rp {{ number_format($discount, 0, ',', '.') }}</span>
+                            </div>
+                        @endif
+
+                        <div class="d-flex justify-content-between align-items-baseline mt-2 pt-2 border-top">
+                            <div>
+                                <span class="fw-bold d-block text-dark" style="font-size: 0.95rem;">Total Tagihan</span>
+                                <small class="text-muted" style="font-size: 0.72rem;">Termasuk PPN jika berlaku</small>
+                            </div>
+                            <h4 class="text-primary fw-bold mb-0" id="total_tagihan_val" style="letter-spacing: -0.5px;">
+                                Rp {{ number_format($cart->total_price - $discount, 0, ',', '.') }}
+                            </h4>
+                        </div>
+
+                        {{-- 🔘 TOMBOL ACTION UTAMA CHECKOUT --}}
+                        @if(!$isB2B)
+                            <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-md mt-3.5 d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); font-size: 0.96rem;">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Buat Pesanan Sekarang</span>
+                            </button>
+                            <div class="text-center mt-2.5 small text-muted d-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.73rem;">
+                                <i class="fas fa-lock text-success"></i>
+                                <span>Transaksi 100% Aman & Terenkripsi</span>
+                            </div>
+                        @else
+                            <button type="submit" class="btn btn-success w-100 py-3 rounded-pill fw-bold shadow-sm mt-3.5 d-flex align-items-center justify-content-center gap-2" style="font-size: 0.96rem;">
+                                <i class="fas fa-paper-plane"></i>
+                                <span>Kirim Permintaan Barang</span>
+                            </button>
+                            <div class="text-center mt-2.5 small text-muted d-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.73rem;">
+                                <i class="fas fa-clock text-info"></i>
+                                <span>Diverifikasi langsung oleh Admin Cabang</span>
+                            </div>
+                        @endif
+
                     </div>
-
-                    @if(!$isB2B)
-                        <div class="d-flex justify-content-between mb-2 small text-muted d-none" id="shipping_cost_row">
-                            <span>Ongkos Kirim</span>
-                            <span id="shipping_cost_val">Rp 0</span>
-                        </div>
-                    @endif
-
-                    @if(!$isB2B)
-                        <div class="d-flex justify-content-between mb-2 text-success small" id="voucher_discount_row" style="display: {{ $voucher ? 'flex' : 'none' }} !important;">
-                            <span id="voucher_discount_label">{{ $voucher && $voucher->type === 'shipping_subsidy' ? 'Subsidi Ongkir' : 'Potongan Voucher' }}</span>
-                            <span id="voucher_discount_val">-Rp {{ number_format($discount, 0, ',', '.') }}</span>
-                        </div>
-                    @endif
-
-                    <div class="d-flex justify-content-between mt-2">
-                        <span class="fw-bold">Total Tagihan</span>
-                        <h5 class="text-primary fw-bold mb-0" id="total_tagihan_val">
-                            Rp {{ number_format($cart->total_price - $discount, 0, ',', '.') }}
-                        </h5>
-                    </div>
-
                 </div>
-
             </div>
 
         </div>
-    </form>
-
 </div>
+
+{{-- 📍 MODAL PILIH ALAMAT TERSIMPAN (BITESHIP MULTI-ADDRESS) --}}
+@if(isset($addresses) && $addresses->isNotEmpty())
+<div class="modal fade" id="modalSelectAddress" tabindex="-1" aria-labelledby="modalSelectAddressLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white p-4">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-map-marked-alt fs-5"></i>
+                    <h5 class="modal-title fw-bold mb-0" id="modalSelectAddressLabel">Pilih Alamat Pengiriman</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="text-muted small mb-0">Pilih salah satu alamat dari buku alamat Anda untuk pengiriman pesanan ini:</p>
+                    <a href="{{ route('profile.show') }}" target="_blank" class="btn btn-link text-primary p-0 small fw-bold text-decoration-none">
+                        <i class="fas fa-cog me-1"></i> Kelola di Profil
+                    </a>
+                </div>
+
+                <div class="row g-3" id="address_selection_list">
+                    @foreach($addresses as $addr)
+                    @php $isSelected = (isset($primaryAddress) && $primaryAddress->id === $addr->id); @endphp
+                    <div class="col-12">
+                        <div class="card address-card-item p-3.5 rounded-4 cursor-pointer transition-all address-option-card shadow-2xs {{ $isSelected ? 'is-primary' : '' }}" 
+                             style="cursor: pointer; padding: 18px 20px !important;"
+                             data-id="{{ $addr->id }}"
+                             data-label="{{ $addr->label }}"
+                             data-name="{{ $addr->recipient_name }}"
+                             data-phone="{{ $addr->phone }}"
+                             data-address="{{ $addr->address }}"
+                             data-area-id="{{ $addr->biteship_area_id }}"
+                             data-area-name="{{ $addr->biteship_area_name }}"
+                             data-postal="{{ $addr->postal_code ?? '' }}"
+                             data-lat="{{ $addr->latitude ?? '' }}"
+                             data-lng="{{ $addr->longitude ?? '' }}"
+                             data-is-primary="{{ $addr->is_primary ? '1' : '0' }}"
+                             onclick="selectSavedAddress(this)">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge rounded-pill px-2.5 py-1 fw-bold small badge-theme-label" style="{{ $isSelected ? 'background-color: #0f172a; color: #ffffff;' : 'background-color: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;' }}">
+                                        <i class="fas fa-tag me-1 {{ $isSelected ? 'text-white-50' : 'text-muted' }}"></i>{{ $addr->label }}
+                                    </span>
+                                    @if($addr->is_primary)
+                                    <span class="badge rounded-pill px-2 py-0.5 fw-semibold" style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 0.68rem;">
+                                        <i class="fas fa-check-circle me-1"></i>Utama
+                                    </span>
+                                    @endif
+                                </div>
+                                <span class="badge rounded-pill px-3 py-1.5 small fw-bold" style="{{ $isSelected ? 'background-color: #0f172a; color: #ffffff;' : 'background-color: #f8fafc; color: #475569; border: 1px solid #e2e8f0;' }}">
+                                    {{ $isSelected ? '✓ Terpilih' : 'Gunakan Alamat Ini' }}
+                                </span>
+                            </div>
+
+                            <strong class="text-dark d-block mb-1" style="font-size: 0.95rem;">{{ $addr->recipient_name }} <span class="text-muted fw-normal">({{ $addr->phone }})</span></strong>
+                            <p class="text-secondary small mb-2 leading-relaxed" style="font-size: 0.84rem;">{{ $addr->address }}</p>
+                            
+                            <div class="p-2 px-2.5 rounded-3 d-inline-flex align-items-center gap-2 small verified-area-box">
+                                <i class="fas fa-map-pin text-secondary"></i>
+                                <span class="fw-semibold area-title text-truncate" style="font-size: 0.8rem;">{{ $addr->biteship_area_name ?? 'Wilayah Pengiriman' }}</span>
+                                @if($addr->postal_code)
+                                <small class="d-inline area-postal ms-1">({{ $addr->postal_code }})</small>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-3 d-flex justify-content-between">
+                <a href="{{ route('profile.show') }}" class="btn btn-outline-secondary rounded-pill px-3.5 btn-sm fw-semibold">
+                    <i class="fas fa-plus-circle me-1"></i> Tambah Alamat Baru di Profil
+                </a>
+                <button type="button" class="btn btn-primary rounded-pill px-4 btn-sm fw-bold" data-bs-dismiss="modal">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 @if(!$isB2B)
 <script>
@@ -367,6 +639,11 @@
         function updateTotalTagihan() {
             let total = Math.max(0, subtotal - discount) + ongkir;
             totalTagihanVal.textContent = 'Rp ' + total.toLocaleString('id-ID');
+        }
+
+        // --- 🚀 AUTO-LOAD BITESHIP RATES JIKA SUDAH ADA ALAMAT DEFAULT ---
+        if (destinationAreaId && destinationAreaId.value) {
+            fetchShippingRates(destinationAreaId.value);
         }
 
         // --- VOUCHER LOGIC ---
@@ -446,55 +723,62 @@
             });
         }
 
-        // --- SHIPMENT AUTOCOMPLETE LOGIC ---
+        // --- SHIPMENT AUTOCOMPLETE LOGIC (Untuk input manual) ---
         let searchTimeout = null;
 
-        areaSearchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            const query = areaSearchInput.value.trim();
-            
-            if (query.length < 3) {
-                areaSuggestions.classList.add('d-none');
-                return;
-            }
-            
-            searchTimeout = setTimeout(() => {
-                fetch(`{{ route('shipping.searchAreas') }}?q=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(areas => {
-                        areaSuggestions.innerHTML = '';
-                        if (areas.length > 0) {
-                            areaSuggestions.classList.remove('d-none');
-                            areas.forEach(area => {
-                                const btn = document.createElement('button');
-                                btn.type = 'button';
-                                btn.className = 'list-group-item list-group-item-action text-start small py-2 border-0';
-                                btn.innerHTML = `<i class="fas fa-map-marker-alt text-primary me-2"></i> ${area.name}`;
-                                btn.addEventListener('click', () => {
-                                    areaSearchInput.value = area.name;
-                                    destinationAreaId.value = area.id;
-                                    areaSuggestions.classList.add('d-none');
-                                    fetchShippingRates(area.id);
+        if (areaSearchInput && areaSuggestions) {
+            areaSearchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const query = areaSearchInput.value.trim();
+                
+                if (query.length < 3) {
+                    areaSuggestions.classList.add('d-none');
+                    return;
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    fetch(`{{ route('shipping.searchAreas') }}?q=${encodeURIComponent(query)}`)
+                        .then(res => res.json())
+                        .then(areas => {
+                            areaSuggestions.innerHTML = '';
+                            if (areas && areas.length > 0) {
+                                areaSuggestions.classList.remove('d-none');
+                                areas.forEach(area => {
+                                    const btn = document.createElement('button');
+                                    btn.type = 'button';
+                                    btn.className = 'list-group-item list-group-item-action text-start small py-2 border-0';
+                                    btn.innerHTML = `<i class="fas fa-map-marker-alt text-primary me-2"></i> ${area.name}`;
+                                    btn.addEventListener('click', () => {
+                                        areaSearchInput.value = area.name;
+                                        destinationAreaId.value = area.id;
+                                        areaSuggestions.classList.add('d-none');
+                                        fetchShippingRates(area.id);
+                                    });
+                                    areaSuggestions.appendChild(btn);
                                 });
-                                areaSuggestions.appendChild(btn);
-                            });
-                        } else {
-                            areaSuggestions.classList.add('d-none');
-                        }
-                    });
-            }, 400);
-        });
+                            } else {
+                                areaSuggestions.classList.add('d-none');
+                            }
+                        });
+                }, 400);
+            });
 
-        // Close suggestions on click outside
-        document.addEventListener('click', function(e) {
-            if (e.target !== areaSearchInput && e.target !== areaSuggestions) {
-                areaSuggestions.classList.add('d-none');
-            }
-        });
+            // Close suggestions on click outside
+            document.addEventListener('click', function(e) {
+                if (e.target !== areaSearchInput && e.target !== areaSuggestions) {
+                    areaSuggestions.classList.add('d-none');
+                }
+            });
+        }
 
-        function fetchShippingRates(areaId) {
+        window.fetchShippingRates = function(areaId, lat = null, lng = null) {
+            if (!shippingOptionsContainer || !shippingRatesList) return;
+
+            const finalLat = (lat !== null && lat !== undefined && lat !== '') ? lat : document.getElementById('destination_latitude')?.value;
+            const finalLng = (lng !== null && lng !== undefined && lng !== '') ? lng : document.getElementById('destination_longitude')?.value;
+
             shippingOptionsContainer.classList.add('d-none');
-            shippingRatesList.innerHTML = '<div class="col-12 py-3 text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil tarif pengiriman...</div>';
+            shippingRatesList.innerHTML = '<div class="col-12 py-3 text-center text-muted"><i class="fas fa-spinner fa-spin me-2 text-primary"></i> Menghitung opsi pengiriman & tarif resmi...</div>';
             shippingOptionsContainer.classList.remove('d-none');
             
             fetch("{{ route('shipping.rates') }}", {
@@ -503,7 +787,11 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
-                body: JSON.stringify({ destination_area_id: areaId })
+                body: JSON.stringify({ 
+                    destination_area_id: areaId,
+                    latitude: finalLat || null,
+                    longitude: finalLng || null
+                })
             })
             .then(res => res.json())
             .then(rates => {
@@ -511,19 +799,44 @@
                 if (rates && rates.length > 0) {
                     rates.forEach((rate, index) => {
                         const checked = index === 0 ? 'checked' : '';
+                        const isInstant = ['gojek', 'grab', 'lalamove', 'paxel'].includes((rate.company || '').toLowerCase()) || 
+                                          (rate.type || '').toLowerCase().includes('instant') || 
+                                          (rate.service_type || '').toLowerCase().includes('instant') || 
+                                          (rate.type || '').toLowerCase().includes('same_day') || 
+                                          (rate.service_type || '').toLowerCase().includes('same_day');
+                        
+                        const badgeHtml = isInstant 
+                            ? `<span class="badge rounded-pill px-2 py-0.5 fw-bold" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 0.68rem;"><i class="fas fa-bolt me-1 text-warning"></i>Instant Delivery</span>`
+                            : `<span class="badge rounded-pill px-2 py-0.5 fw-medium" style="background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-size: 0.68rem;"><i class="fas fa-box me-1"></i>Reguler</span>`;
+
+                        const courierDisplay = rate.courier_name || (rate.company ? rate.company.toUpperCase() : 'KURIR');
+                        const serviceDisplay = rate.courier_service_name || rate.name || rate.type;
+                        const durationDisplay = rate.duration || (rate.shipment_duration_range ? `${rate.shipment_duration_range} ${rate.shipment_duration_unit}` : (rate.estimated_arrival || '1-3 Hari'));
+
                         const card = document.createElement('div');
                         card.className = 'col-md-6 mb-2';
                         card.innerHTML = `
                             <input type="radio" class="btn-check" name="shipping_rate_select" id="rate_${index}" 
-                                   value="${rate.price}" data-courier="${rate.company}" data-service="${rate.type}" ${checked}>
-                            <label class="btn btn-outline-primary w-100 p-3 rounded-3 text-start h-100 d-flex flex-column justify-content-between" for="rate_${index}">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <strong class="text-uppercase text-dark">${rate.company} - ${rate.type}</strong>
-                                    <span class="text-primary fw-bold">Rp ${rate.price.toLocaleString('id-ID')}</span>
+                                   value="${rate.price}" 
+                                   data-courier="${courierDisplay}" 
+                                   data-service="${serviceDisplay}" 
+                                   data-company="${rate.company}" 
+                                   data-type="${rate.type}" 
+                                   ${checked}>
+                            <label class="btn btn-outline-dark w-100 p-3 rounded-3 text-start h-100 d-flex flex-column justify-content-between courier-rate-card" for="rate_${index}" style="border-color: #cbd5e1;">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.92rem;">${serviceDisplay}</span>
+                                        <span class="fw-bold text-primary" style="font-size: 0.95rem;">Rp ${parseInt(rate.price).toLocaleString('id-ID')}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1 mb-1">
+                                        ${badgeHtml}
+                                        <span class="small text-muted" style="font-size: 0.75rem;">${courierDisplay}</span>
+                                    </div>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center text-muted small">
-                                    <span>Layanan: ${rate.name}</span>
-                                    <span>Est: ${rate.estimated_arrival}</span>
+                                <div class="d-flex justify-content-between align-items-center text-muted small mt-2 pt-1 border-top" style="font-size: 0.75rem; border-color: #f1f5f9 !important;">
+                                    <span><i class="fas fa-clock me-1 text-secondary"></i>${durationDisplay}</span>
+                                    <span class="text-primary fw-semibold" style="font-size: 0.75rem;">Pilih Layanan</span>
                                 </div>
                             </label>
                         `;
@@ -531,12 +844,13 @@
                         
                         // Add event listener to input
                         card.querySelector('input').addEventListener('change', function() {
-                            selectShippingRate(rate.price, rate.company, rate.type);
+                            selectShippingRate(rate.price, courierDisplay, serviceDisplay, rate.company, rate.type);
                         });
                     });
                     
                     // Select first rate by default
-                    selectShippingRate(rates[0].price, rates[0].company, rates[0].type);
+                    const firstRate = rates[0];
+                    selectShippingRate(firstRate.price, firstRate.courier_name || firstRate.company.toUpperCase(), firstRate.courier_service_name || firstRate.name || firstRate.type, firstRate.company, firstRate.type);
                 } else {
                     shippingRatesList.innerHTML = '<div class="col-12 py-3 text-center text-danger"><i class="fas fa-exclamation-circle me-2"></i> Tidak ada layanan kurir yang tersedia untuk wilayah ini.</div>';
                 }
@@ -546,17 +860,92 @@
             });
         }
 
-        function selectShippingRate(price, courier, service) {
+        function selectShippingRate(price, courier, service, company, type) {
             ongkir = parseInt(price);
-            shippingCostInput.value = ongkir;
-            shippingKurir.value = courier;
-            shippingService.value = service;
+            if (shippingCostInput) shippingCostInput.value = ongkir;
+            if (shippingKurir) shippingKurir.value = courier;
+            if (shippingService) shippingService.value = service;
             
-            shippingCostVal.textContent = 'Rp ' + ongkir.toLocaleString('id-ID');
-            shippingCostRow.classList.remove('d-none');
+            const companyInput = document.getElementById('selected_courier_company');
+            const typeInput = document.getElementById('selected_courier_type');
+            if (companyInput) companyInput.value = company || courier;
+            if (typeInput) typeInput.value = type || service;
+
+            if (shippingCostVal) shippingCostVal.textContent = 'Rp ' + ongkir.toLocaleString('id-ID');
+            if (shippingCostRow) shippingCostRow.classList.remove('d-none');
             
             updateTotalTagihan();
         }
+
+        // --- HANDLER GANTI ALAMAT DARI MODAL ---
+        window.selectSavedAddress = function(cardElem) {
+            const data = cardElem.dataset;
+            
+            // 1. Update Preview Card
+            const labelElem = document.getElementById('active_address_label');
+            const nameElem = document.getElementById('active_recipient_name');
+            const phoneElem = document.getElementById('active_recipient_phone');
+            const streetElem = document.getElementById('active_street_address');
+            const biteshipElem = document.getElementById('active_biteship_name');
+            const postalElem = document.getElementById('active_postal_code');
+
+            if (labelElem) labelElem.innerHTML = `<i class="fas fa-tag me-1"></i>${data.label}`;
+            if (nameElem) nameElem.textContent = data.name;
+            if (phoneElem) phoneElem.innerHTML = `<i class="fas fa-phone-alt me-1 text-primary" style="font-size: 0.75rem;"></i>${data.phone}`;
+            if (streetElem) streetElem.textContent = data.address;
+            if (biteshipElem) biteshipElem.textContent = data.areaName;
+            if (postalElem) postalElem.textContent = data.postal ? `Kode Pos: ${data.postal}` : '';
+
+            // 2. Update Form Hidden Inputs
+            const nameInput = document.getElementById('checkout_nama_penerima');
+            const phoneInput = document.getElementById('checkout_no_telp');
+            const addressInput = document.getElementById('checkout_alamat_pengiriman');
+            const areaIdInput = document.getElementById('destination_area_id');
+            const areaSearchInput = document.getElementById('area_search_input');
+            const latInput = document.getElementById('destination_latitude');
+            const lngInput = document.getElementById('destination_longitude');
+
+            if (nameInput) nameInput.value = data.name;
+            if (phoneInput) phoneInput.value = data.phone;
+            if (addressInput) addressInput.value = data.address;
+            if (areaIdInput) areaIdInput.value = data.areaId;
+            if (areaSearchInput) areaSearchInput.value = data.areaName;
+            if (latInput) latInput.value = data.lat || '';
+            if (lngInput) lngInput.value = data.lng || '';
+
+            // 3. Update Modal Card Styles
+            document.querySelectorAll('.address-option-card').forEach(c => {
+                c.classList.remove('is-primary');
+                const badge = c.querySelector('.badge:last-child');
+                if (badge) {
+                    badge.className = 'badge rounded-pill px-3 py-1.5 small fw-bold';
+                    badge.style = 'background-color: #f8fafc; color: #475569; border: 1px solid #e2e8f0;';
+                    badge.textContent = 'Gunakan Alamat Ini';
+                }
+            });
+
+            cardElem.classList.add('is-primary');
+            const activeBadge = cardElem.querySelector('.badge:last-child');
+            if (activeBadge) {
+                activeBadge.className = 'badge rounded-pill px-3 py-1.5 small fw-bold';
+                activeBadge.style = 'background-color: #0f172a; color: #ffffff;';
+                activeBadge.textContent = '✓ Terpilih';
+            }
+
+            // 4. Hitung Ulang Ongkir Real-time via Biteship dengan koordinat
+            if (data.areaId) {
+                fetchShippingRates(data.areaId, data.lat, data.lng);
+            }
+
+            // 5. Tutup Modal
+            const modalElem = document.getElementById('modalSelectAddress');
+            if (modalElem) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElem);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+        };
     });
 </script>
 @endif

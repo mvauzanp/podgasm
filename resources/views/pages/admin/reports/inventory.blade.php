@@ -1,57 +1,53 @@
 @extends('layouts.admin')
 
 @section('content_admin')
-<div class="container-fluid">
+<div class="container-fluid p-0">
 
     {{-- HEADER + FILTER --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-        <h4 class="fw-bold">Laporan Inventaris & Estimasi Kerugian</h4>
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3 no-print">
+        <div>
+            <h4 class="fw-bold mb-0.5 text-dark" style="font-size: 1.25rem;">Laporan Inventaris &amp; Estimasi Kerugian</h4>
+            <p class="text-muted small mb-0">Analisis stok berisiko kadaluarsa dan depresiasi pita cukai lama</p>
+        </div>
 
-        <form method="GET" class="d-flex gap-2">
-            <input type="date" name="start_date" class="form-control form-control-sm"
-                   value="{{ request('start_date') }}">
-            <input type="date" name="end_date" class="form-control form-control-sm"
-                   value="{{ request('end_date') }}">
+        <form method="GET" class="d-flex align-items-center gap-2 flex-wrap">
+            <select name="branch_id" class="form-select form-select-sm rounded-3" style="min-width: 200px; font-size: 0.8rem;" onchange="this.form.submit()">
+                <option value="all" {{ ($selectedBranch ?? 'all') == 'all' ? 'selected' : '' }}>📦 Semua Stok (Konsolidasi Pusat)</option>
+                <option value="hq" {{ ($selectedBranch ?? '') == 'hq' ? 'selected' : '' }}>🏢 Gudang Utama (HQ Surabaya)</option>
+            </select>
 
-            <button type="submit" class="btn btn-primary btn-sm">
-                <i class="fas fa-filter"></i>
-            </button>
-
-            <button type="button" onclick="window.print()" class="btn btn-outline-dark btn-sm">
-                <i class="fas fa-print"></i>
+            <button type="button" onclick="window.print()" class="btn btn-outline-dark btn-sm rounded-3 px-3 shadow-sm" style="font-size: 0.8rem;">
+                <i class="fas fa-print me-1.5"></i> Cetak
             </button>
         </form>
     </div>
 
     {{-- CARD TOTAL --}}
-    <div class="row mb-4 no-print">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-danger text-white rounded-4">
-                <div class="card-body">
-                    <h6 class="small text-uppercase">Total Potensi Kerugian</h6>
-                    <h3 class="fw-bold mb-0">
+    <div class="row mb-3 no-print">
+        <div class="col-xl-4 col-md-6 col-12">
+            <div class="card border-0 shadow-sm bg-danger text-white rounded-3">
+                <div class="card-body p-3">
+                    <h6 class="small text-uppercase mb-1" style="font-size: 0.72rem; opacity: 0.9;">Total Potensi Kerugian</h6>
+                    <h4 class="fw-bold mb-0 text-white" style="font-size: 1.35rem;">
                         Rp {{ number_format($reports->sum('estimasi_rugi'), 0, ',', '.') }}
-                    </h3>
+                    </h4>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- PRINT HEADER --}}
-    <div class="print-header text-center mb-4">
-        <h4 class="fw-bold">LAPORAN INVENTARIS</h4>
-        <p class="mb-0">
-            Periode:
-            {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d M Y') : '-' }}
-            s/d
-            {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d M Y') : '-' }}
+    <div class="print-header text-center mb-3">
+        <h5 class="fw-bold">LAPORAN INVENTARIS GUDANG PUSAT</h5>
+        <p class="mb-0 small text-muted">
+            Tanggal Cetak: {{ date('d M Y') }}
         </p>
     </div>
 
     {{-- TABLE --}}
-    <div class="card border-0 shadow-sm rounded-4">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="table-responsive">
-            <table class="table table-bordered align-middle mb-0">
+            <table class="table table-hover align-middle mb-0">
 
                 <thead class="bg-light text-center">
                     <tr>

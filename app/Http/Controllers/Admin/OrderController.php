@@ -90,30 +90,19 @@ class OrderController extends Controller
             $oldStatus = $order->status instanceof OrderStatus ? $order->status->value : $order->status;
 
             // B2C: Jika status sebelumnya pending_payment dan disetujui (paid/shipped/completed),
-            // jalankan confirmPayment() untuk memotong stok.
+            // jalankan confirmPayment() untuk memotong stok secara atomik.
             if ($order->isPendingPayment() && in_array($newStatus, [OrderStatus::PAID, OrderStatus::SHIPPED, OrderStatus::COMPLETED])) {
                 if (!$this->orderService->confirmPayment($order)) {
                     return redirect()->back()->withErrors(['msg' => 'Gagal mengonfirmasi pembayaran: Stok gudang pusat tidak mencukupi.']);
                 }
-            } else {
-                \Illuminate\Support\Facades\DB::transaction(function () use ($order, $newStatus, $oldStatus) {
-                    // Jika diubah ke cancelled dari status paid/shipped/completed, kembalikan stok
-                    if ($newStatus === OrderStatus::CANCELLED && in_array($oldStatus, ['paid', 'shipped', 'completed'])) {
-                        foreach ($order->items as $item) {
-                            $product = \App\Models\Product::find($item->product_id);
-                            if ($item->product_variant_id) {
-                                $variant = \App\Models\ProductVariant::find($item->product_variant_id);
-                                if ($variant) {
-                                    $variant->increment('stok_aktual', $item->quantity);
-                                }
-                            }
-                            if ($product) {
-                                $product->increment('stok_aktual', $item->quantity);
-                            }
-                        }
-                    }
+                if ($newStatus !== OrderStatus::PAID) {
                     $order->update(['status' => $newStatus->value]);
-                });
+                }
+            } elseif ($newStatus === OrderStatus::CANCELLED) {
+                // Gunakan cancelOrder() dari OrderService untuk merestorasi stok, voucher quota, dan usage records
+                $this->orderService->cancelOrder($order);
+            } else {
+                $order->update(['status' => $newStatus->value]);
             }
 
             // Kirim Notifikasi Update Status dengan label Enum
@@ -171,16 +160,8 @@ class OrderController extends Controller
                 return redirect()->back()->withErrors(['msg' => 'Informasi pengiriman tidak lengkap (Area ID/Kurir/Layanan kosong). Hubungi admin untuk melengkapi data order.']);
             }
 
-            // Format items sesuai Biteship API
-            $biteshipItems = [];
-            foreach ($order->items as $item) {
-                $biteshipItems[] = [
-                    'name' => $item->product->nama_barang . ($item->variant ? ' (' . $item->variant->nama_varian . ')' : ''),
-                    'value' => (int) $item->price,
-                    'quantity' => (int) $item->quantity,
-                    'weight' => 200 // default weight 200gr per item
-                ];
-            }
+            $biteship = app(\App\Services\BiteshipService::class);
+            $biteshipItems = $biteship->formatOrderItems($order->items);
 
             $orderData = [
                 'recipient_name' => $order->nama_penerima,
@@ -188,12 +169,13 @@ class OrderController extends Controller
                 'recipient_email' => $order->email,
                 'recipient_address' => $order->alamat_pengiriman,
                 'recipient_area_id' => $order->destination_area_id,
-                'courier_company' => $order->kurir,
-                'courier_type' => $order->layanan,
+                'destination_latitude' => $order->destination_latitude,
+                'destination_longitude' => $order->destination_longitude,
+                'courier_company' => $order->courier_company ?: $order->kurir,
+                'courier_type' => $order->courier_type ?: $order->layanan,
                 'items' => $biteshipItems
             ];
 
-            $biteship = app(\App\Services\BiteshipService::class);
             $response = $biteship->createOrder($orderData);
 
             if ($response['success']) {

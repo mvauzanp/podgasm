@@ -1,18 +1,13 @@
 @extends('layouts.frontend')
 
 @section('content')
-<div class="container-fluid px-lg-5 py-3">
+<div class="container-fluid px-3 px-md-4 px-xl-5 py-2 py-md-3">
 
-    {{-- Breadcrumb Minimalis dengan Logo Podgasm --}}
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb bg-transparent p-0 mb-0 align-items-center small">
+    {{-- Breadcrumb Minimalis --}}
+    <nav aria-label="breadcrumb" class="mb-3 mb-md-4">
+        <ol class="breadcrumb bg-transparent p-0 mb-0 align-items-center small flex-nowrap overflow-x-auto text-nowrap py-1 no-scrollbar">
             <li class="breadcrumb-item">
-                <a href="{{ route('home') }}" class="text-secondary text-decoration-none hover-primary d-inline-flex align-items-center">
-                    <img src="{{ asset('LogoPodgasm.png') }}" alt="Podgasm" style="height: 24px; width: auto;" class="me-1.5 object-fit-contain"> Home
-                </a>
-            </li>
-            <li class="breadcrumb-item text-muted">
-                <i class="fas fa-chevron-right mx-1 opacity-50" style="font-size: 0.65rem;"></i>
+                <a href="{{ route('home') }}" class="text-secondary text-decoration-none hover-primary">Home</a>
             </li>
             <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Hasil Pencarian</li>
         </ol>
@@ -22,12 +17,12 @@
     <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom border-light flex-wrap gap-3">
         <div>
             @if($query)
-                <h2 class="fw-black text-dark mb-1" style="font-size: 2.2rem; letter-spacing: -0.5px;">
+                <h2 class="fw-black text-dark mb-1" style="font-size: 1.8rem; letter-spacing: -0.5px;">
                     Hasil Pencarian "{{ $query }}"
                 </h2>
                 <p class="text-secondary small mb-0">Menampilkan produk yang cocok dengan kata kunci pencarian Anda</p>
             @else
-                <h2 class="fw-black text-dark mb-1" style="font-size: 2.2rem; letter-spacing: -0.5px;">
+                <h2 class="fw-black text-dark mb-1" style="font-size: 1.8rem; letter-spacing: -0.5px;">
                     Pencarian Produk
                 </h2>
             @endif
@@ -48,67 +43,12 @@
         </div>
     @endif
 
-    {{-- PRODUCT GRID SURFEIT (4 KOLOM DENGAN KOTAK ABU-ABU FLOATING IMAGE) --}}
+    {{-- PRODUCT GRID SURFEIT (4 KOLOM) --}}
     @if(isset($products) && $products->count() > 0)
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 g-xl-5 mb-5">
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4 g-xl-5 mb-5">
             @foreach($products as $pro)
-            @php
-                $isB2B = auth()->check() && auth()->user()->role === 'branch';
-                $actualPrice = $pro->harga_jual_actual;
-                $b2bPrice = $isB2B ? $pro->getB2bPrice(1) : null;
-            @endphp
             <div class="col">
-                <div class="surfeit-product-wrapper cursor-pointer" onclick="window.location.href='{{ route('public.product.show', $pro->slug) }}'">
-                    
-                    {{-- KOTAK CONTAINER ABU-ABU TEMPAT GAMBAR MENGAPUNG --}}
-                    <div class="surfeit-image-box position-relative d-flex align-items-center justify-content-center overflow-hidden" 
-                         style="background-color: #f4f4f4; height: 380px; padding: 36px 24px; border-radius: 4px; transition: all 0.3s ease;">
-                        
-                        @if($pro->gambar)
-                            <img src="{{ asset('storage/' . $pro->gambar) }}" 
-                                 alt="{{ $pro->nama_barang }}"
-                                 class="surfeit-floating-img img-fluid"
-                                 style="max-height: 290px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.12)); transition: transform 0.4s ease;">
-                        @else
-                            <div class="text-center text-muted">
-                                <i class="fas fa-box fa-3x opacity-25"></i>
-                            </div>
-                        @endif
-
-                        <button type="button" 
-                                class="btn btn-light btn-sm rounded-circle position-absolute top-0 end-0 m-3 shadow-sm border-0 wishlist-btn"
-                                data-product-id="{{ $pro->id }}"
-                                onclick="event.stopPropagation();"
-                                style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #ffffff;">
-                            <i class="far fa-bookmark text-dark"></i>
-                        </button>
-                    </div>
-
-                    {{-- INFORMASI PRODUK DI LUAR / DI BAWAH KOTAK ABU-ABU --}}
-                    <div class="surfeit-details-box mt-3">
-                        <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 0.95rem; line-height: 1.3; font-family: 'Poppins', sans-serif;" title="{{ $pro->nama_barang }}">
-                            {{ $pro->nama_barang }}
-                        </h6>
-
-                        <div class="text-secondary small mb-1" style="font-size: 0.82rem; color: #64748b !important; font-family: 'Poppins', sans-serif;">
-                            {{ $pro->category ? $pro->category->nama_kategori : 'Podgasm Store' }}
-                        </div>
-
-                        <div class="fw-bold text-dark small mb-1" style="font-size: 0.82rem; color: #1e293b !important;">
-                            {{ $pro->kode_barang ?? 'Original Vape Product' }}
-                        </div>
-
-                        <div class="fw-bold price-text" style="font-size: 0.95rem;">
-                            @if($isB2B && $b2bPrice < $actualPrice)
-                                <span class="text-decoration-line-through text-muted small me-1">Rp {{ number_format($actualPrice, 0, ',', '.') }}</span>
-                                Rp {{ number_format($b2bPrice, 0, ',', '.') }}
-                            @else
-                                {{ $pro->formatted_price }}
-                            @endif
-                        </div>
-                    </div>
-
-                </div>
+                @include('components._product-card', ['pro' => $pro])
             </div>
             @endforeach
         </div>
@@ -124,11 +64,28 @@
                 <i class="fas fa-search fa-4x text-muted opacity-25"></i>
             </div>
             <h4 class="fw-bold text-dark mb-2">Produk Tidak Ditemukan</h4>
-            <p class="text-secondary max-w-md mx-auto mb-4" style="max-width: 450px;">
-                Maaf, tidak ada produk yang cocok dengan kata kunci "<strong>{{ $query }}</strong>". Coba gunakan kata kunci lain seperti <em>liquid, saltnic, pod, atau cartridge</em>.
+            <p class="text-secondary max-w-md mx-auto mb-4" style="max-width: 480px;">
+                Maaf, tidak ada produk yang cocok dengan kata kunci "<strong>{{ $query }}</strong>". Coba gunakan kata kunci yang lebih umum atau jelajahi kategori terpopuler di bawah ini:
             </p>
-            <a href="{{ route('home') }}" class="btn btn-dark rounded-pill px-4 py-2 fw-semibold small">
-                Lihat Semua Produk
+
+            {{-- Rekomendasi Kategori Terpopuler --}}
+            <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap mb-4 max-w-md mx-auto" style="max-width: 500px;">
+                <a href="{{ route('public.search') }}?q=liquid" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5">
+                    <i class="fas fa-wine-bottle me-1 text-primary"></i> Liquid
+                </a>
+                <a href="{{ route('public.search') }}?q=saltnic" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5">
+                    <i class="fas fa-tint me-1 text-info"></i> Saltnic
+                </a>
+                <a href="{{ route('public.search') }}?q=pod" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5">
+                    <i class="fas fa-bolt me-1 text-warning"></i> Pod System
+                </a>
+                <a href="{{ route('public.search') }}?q=cartridge" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5">
+                    <i class="fas fa-cube me-1 text-success"></i> Cartridge
+                </a>
+            </div>
+
+            <a href="{{ route('home') }}" class="btn btn-primary rounded-pill px-4 py-2.5 fw-semibold small shadow-sm">
+                <i class="fas fa-store me-1"></i> Jelajahi Seluruh Katalog
             </a>
         </div>
     @endif
@@ -142,6 +99,27 @@
 
 .surfeit-product-wrapper:hover .surfeit-image-box {
     background-color: #ededed;
+}
+
+/* Dark mode product card & image box styling */
+body.dark-mode .surfeit-image-box,
+html[data-bs-theme="dark"] .surfeit-image-box,
+body.dark-mode .surfeit-product-wrapper,
+html[data-bs-theme="dark"] .surfeit-product-wrapper {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+body.dark-mode .surfeit-product-wrapper:hover .surfeit-image-box,
+html[data-bs-theme="dark"] .surfeit-product-wrapper:hover .surfeit-image-box {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+body.dark-mode .wishlist-btn,
+html[data-bs-theme="dark"] .wishlist-btn {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 </style>
 @endsection

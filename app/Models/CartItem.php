@@ -67,16 +67,56 @@ class CartItem extends Model
      */
     public function getCurrentPrice()
     {
-        $isB2B = $this->cart->user && $this->cart->user->role === 'branch';
+        $user = $this->cart?->user;
+        $isB2B = $user && ($user->role === 'branch' || $user->b2b_type === 'reseller' || $user->b2b_type === 'branch');
 
         if ($this->product_variant_id && $this->variant) {
-            return $isB2B 
-                ? $this->variant->getB2bPrice($this->quantity) 
-                : $this->variant->harga_jual_actual;
+            return $isB2B ? $this->variant->getB2bPrice($this->quantity) : $this->variant->getTieredPrice($this->quantity);
         }
 
-        return $isB2B 
-            ? $this->product->getB2bPrice($this->quantity) 
-            : $this->product->harga_jual;
+        if ($this->product) {
+            return $isB2B ? $this->product->getB2bPrice($this->quantity) : $this->product->getTieredPrice($this->quantity);
+        }
+
+        return $this->price;
+    }
+
+    /**
+     * Get original un-discounted price
+     */
+    public function getOriginalPrice()
+    {
+        if ($this->product_variant_id && $this->variant) {
+            return $this->variant->harga_jual_actual;
+        }
+
+        if ($this->product) {
+            return $this->product->harga_jual_actual ?? $this->product->harga_jual;
+        }
+
+        return $this->price;
+    }
+
+    /**
+     * Get active discount percentage for this cart item
+     */
+    public function getDiscountPercentage(): float
+    {
+        $original = (float) $this->getOriginalPrice();
+        $current = (float) $this->price;
+
+        if ($original > 0 && $current < $original) {
+            return (float) round((($original - $current) / $original) * 100);
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Check if this item has active discount
+     */
+    public function hasDiscount(): bool
+    {
+        return $this->getDiscountPercentage() > 0;
     }
 }

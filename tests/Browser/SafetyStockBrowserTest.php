@@ -15,7 +15,7 @@ class SafetyStockBrowserTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             $browser->visit('/')
-                ->assertSee('Jelajahi Kategori');
+                ->assertSee('Category');
         });
     }
 }

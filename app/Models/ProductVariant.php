@@ -18,6 +18,7 @@ class ProductVariant extends Model
         'kode_barang',
         'harga_jual',
         'harga_pokok',
+        'weight',      // Berat dalam gram (Olsera POS & Biteship)
         'stok_aktual',
         'nilai_ss',
         'lead_time',
@@ -56,6 +57,28 @@ class ProductVariant extends Model
         return $this->hasMany(B2BPriceSetting::class, 'product_variant_id');
     }
 
+    public function getTierDiscountPercentage(int $qty = 1): float
+    {
+        return $this->product ? $this->product->getTierDiscountPercentage($qty) : 0.0;
+    }
+
+    public function getTieredPrice(int $qty = 1): float
+    {
+        $basePrice = (float) $this->harga_jual_actual;
+        $discountPercent = $this->getTierDiscountPercentage($qty);
+
+        if ($discountPercent > 0) {
+            return (float) round($basePrice - ($basePrice * ($discountPercent / 100)));
+        }
+
+        return $basePrice;
+    }
+
+    public function getPricingTiers(): array
+    {
+        return $this->product ? $this->product->getPricingTiers((float) $this->harga_jual_actual) : [];
+    }
+
     public function getB2bPrice($qty = 1)
     {
         $originalPrice = $this->harga_jual_actual;
@@ -78,13 +101,18 @@ class ProductVariant extends Model
             }
         }
 
+        // Fallback to category tier discount if available
+        $tieredPrice = $this->getTieredPrice($qty);
+        if ($tieredPrice < $originalPrice) {
+            return $tieredPrice;
+        }
+
         return $originalPrice;
     }
 
-    // Relasi ke Branch Stocks
-    public function branchStocks()
+    public function salesHistories()
     {
-        return $this->hasMany(BranchStock::class, 'product_variant_id');
+        return $this->hasMany(SalesHistory::class, 'product_variant_id');
     }
 
     // Relasi ke Cart Items

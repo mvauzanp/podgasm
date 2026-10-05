@@ -49,6 +49,15 @@ class Cart extends Model
      */
     public function calculateTotal()
     {
+        $items = $this->items()->with(['product.category', 'variant'])->get();
+        foreach ($items as $item) {
+            $currentPrice = $item->getCurrentPrice();
+            if ($item->price != $currentPrice) {
+                $item->price = $currentPrice;
+                $item->save();
+            }
+        }
+
         $total = $this->items()->sum(DB::raw('quantity * price'));
         $this->update(['total_price' => $total ?? 0]);
         return $total ?? 0;

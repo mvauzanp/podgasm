@@ -4,22 +4,38 @@
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-9">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 print-hide">
                 <h4 class="fw-bold mb-0">Detail Pesanan</h4>
-                <a href="{{ route('order.history') }}" class="btn btn-light rounded-pill px-4">
-                    <i class="fas fa-arrow-left me-2"></i> Kembali
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="https://wa.me/6281234567890?text={{ urlencode('Halo Admin Podgasm, saya ingin menanyakan pesanan saya dengan No. Invoice #' . $order->invoice_number . ' (Total: Rp ' . number_format($order->total_harga, 0, ',', '.') . ')') }}" 
+                       target="_blank" 
+                       class="btn btn-success rounded-pill px-3 py-2 small fw-semibold shadow-sm" 
+                       title="Hubungi Admin CS">
+                        <i class="fab fa-whatsapp me-1 fs-6"></i> Tanya Admin
+                    </a>
+                    <button type="button" class="btn btn-outline-dark rounded-pill px-3 py-2 small fw-semibold shadow-sm" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Cetak Invoice
+                    </button>
+                    <a href="{{ route('order.history') }}" class="btn btn-light rounded-pill px-4">
+                        <i class="fas fa-arrow-left me-2"></i> Kembali
+                    </a>
+                </div>
             </div>
 
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 invoice-print-container">
                 <div class="card-header bg-primary text-white p-4 border-0">
                     <div class="row align-items-center">
                         <div class="col-md-6">
                             <small class="opacity-75 d-block">Nomor Invoice</small>
-                            <h4 class="fw-bold mb-0">{{ $order->invoice_number }}</h4>
+                            <div class="d-flex align-items-center gap-2">
+                                <h4 class="fw-bold mb-0 font-monospace">{{ $order->invoice_number }}</h4>
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2 py-0.5 small border-0 print-hide" onclick="copyInvoiceNo('{{ $order->invoice_number }}')" title="Salin Nomor Invoice">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                            <span class="badge bg-white text-primary px-3 py-2 rounded-pill">
+                            <span class="badge bg-white text-primary px-3 py-2 rounded-pill fw-bold">
                                 @if($order->metode_pembayaran === 'branch_request' && $order->status === 'pending_payment')
                                     MENUNGGU PERSETUJUAN
                                 @elseif($order->metode_pembayaran === 'branch_request' && $order->status === 'paid')
@@ -62,7 +78,7 @@
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <img src="{{ asset('storage/' . $item->product->gambar) }}" width="40" class="rounded me-2">
+                                            <img src="{{ $item->product->gambar_url }}" width="40" class="rounded me-2">
                                             <div>
                                                 <span class="small fw-bold d-block">{{ $item->product->nama_barang }}</span>
                                                 @if($item->variant)
@@ -255,4 +271,64 @@
     });
 </script>
 @endif
+
+<script>
+function copyInvoiceNo(inv) {
+    navigator.clipboard.writeText(inv).then(() => {
+        if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            });
+            Toast.fire({
+                icon: 'success',
+                title: 'No. Invoice (' + inv + ') tersalin!'
+            });
+        } else {
+            alert('No. Invoice tersalin!');
+        }
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+}
+</script>
+
+<style>
+@media print {
+    /* Sembunyikan elemen navigasi, tombol, footer, dan chat saat mencetak */
+    nav, footer, .navbar, .btn, .print-hide, #csChatFloatingBtn, #csChatModal, #themeToggleBtn {
+        display: none !important;
+    }
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+    .card {
+        border: 1px solid #000000 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+    .card-header {
+        background-color: #f8fafc !important;
+        color: #000000 !important;
+        border-bottom: 2px solid #000000 !important;
+    }
+    .card-header h4, .card-header span {
+        color: #000000 !important;
+    }
+    .table {
+        color: #000000 !important;
+    }
+}
+</style>
 @endsection

@@ -56,7 +56,22 @@ class CheckoutController extends Controller
         $cartCount = $cart->items()->sum('quantity');
         $wishlistCount = session()->get('wishlist') ? count(session()->get('wishlist')) : 0;
 
-        return view('pages.frontend.checkout', compact('cart', 'items', 'cartCount', 'wishlistCount', 'voucher', 'discount', 'voucherError'));
+        // Ambil daftar alamat tersimpan user (Biteship integrated)
+        $user = Auth::user();
+        $addresses = $user->addresses()->orderByDesc('is_primary')->latest()->get();
+        $primaryAddress = $addresses->firstWhere('is_primary', true) ?? $addresses->first();
+
+        return view('pages.frontend.checkout', compact(
+            'cart', 
+            'items', 
+            'cartCount', 
+            'wishlistCount', 
+            'voucher', 
+            'discount', 
+            'voucherError',
+            'addresses',
+            'primaryAddress'
+        ));
     }
 
     /**

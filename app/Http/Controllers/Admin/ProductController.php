@@ -35,7 +35,7 @@ class ProductController extends Controller
         $lowStockCount = Product::whereRaw('stok_aktual <= nilai_ss')->count();
         $safeStockCount = Product::whereRaw('stok_aktual > nilai_ss')->count();
 
-        $products = $query->latest()->paginate(10);
+        $products = $query->orderBy('id', 'asc')->paginate(15);
         
         return view('pages.admin.products.index', compact(
             'products',

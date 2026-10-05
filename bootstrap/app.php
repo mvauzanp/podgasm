@@ -12,11 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'role'           => \App\Http\Middleware\RoleMiddleware::class,
+            'olsera.webhook' => \App\Http\Middleware\VerifyOlseraWebhook::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/midtrans/notification',
             'midtrans/notification',
+            'api/olsera/webhook',
+            'api/biteship/webhook',
+            'webhook/biteship',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

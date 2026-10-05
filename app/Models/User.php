@@ -68,4 +68,14 @@ class User extends Authenticatable
     {
         return $this->hasOne(B2BRegistration::class, 'user_id');
     }
+
+    public function addresses()
+    {
+        return $this->hasMany(UserAddress::class, 'user_id');
+    }
+
+    public function primaryAddress()
+    {
+        return $this->hasOne(UserAddress::class, 'user_id')->where('is_primary', true);
+    }
 }

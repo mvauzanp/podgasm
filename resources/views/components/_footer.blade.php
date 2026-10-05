@@ -53,7 +53,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnReset = document.getElementById('btnResetAgeVerification');
     if (btnReset) {
         btnReset.addEventListener('click', function() {
-            if (confirm('Apakah Anda ingin memverifikasi ulang usia Anda?')) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Verifikasi Ulang Usia?',
+                    text: 'Anda akan mereset status verifikasi 21+ dan halaman akan dimuat ulang.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Verifikasi Ulang',
+                    cancelButtonText: 'Batal',
+                    customClass: {
+                        popup: 'rounded-4'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        localStorage.removeItem('podgasm_age_verified_21');
+                        document.cookie = "podgasm_age_verified=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        window.location.reload();
+                    }
+                });
+            } else if (confirm('Apakah Anda ingin memverifikasi ulang usia Anda?')) {
                 localStorage.removeItem('podgasm_age_verified_21');
                 document.cookie = "podgasm_age_verified=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 window.location.reload();

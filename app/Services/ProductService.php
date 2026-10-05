@@ -9,9 +9,12 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Traits\ImageOptimizerTrait;
 
 class ProductService
 {
+    use ImageOptimizerTrait;
+
     /**
      * Menyimpan produk baru beserta gambarnya dan variannya.
      */
@@ -39,11 +42,11 @@ class ProductService
             // Simpan produk induk
             $product = Product::create($data);
 
-            // Simpan gambar-gambar produk
+            // Simpan gambar-gambar produk (Auto-Compress to WebP 800px max)
             if (!empty($uploadedImages)) {
                 $primaryPath = null;
                 foreach ($uploadedImages as $index => $file) {
-                    $path = $file->store('products', 'public');
+                    $path = $this->optimizeAndStoreUploadedImage($file, 'products', 800, 80);
                     if ($index === 0) {
                         $primaryPath = $path;
                     }
@@ -55,12 +58,12 @@ class ProductService
                 }
             }
 
-            // Simpan varian jika diaktifkan
+            // Simpan varian jika diaktifkan (Auto-Compress to WebP)
             if ($hasVariants && !empty($variants)) {
                 foreach ($variants as $index => $variantData) {
                     $variantPath = null;
                     if (isset($variantData['gambar']) && $variantData['gambar'] instanceof \Illuminate\Http\UploadedFile) {
-                        $variantPath = $variantData['gambar']->store('variants', 'public');
+                        $variantPath = $this->optimizeAndStoreUploadedImage($variantData['gambar'], 'variants', 800, 80);
                     }
 
                     $product->variants()->create([
@@ -103,10 +106,10 @@ class ProductService
                 }
             }
 
-            // 2. Unggah gambar baru jika ada
+            // 2. Unggah gambar baru jika ada (Auto-Compress to WebP)
             if (!empty($uploadedImages)) {
                 foreach ($uploadedImages as $file) {
-                    $path = $file->store('products', 'public');
+                    $path = $this->optimizeAndStoreUploadedImage($file, 'products', 800, 80);
                     $product->images()->create(['path' => $path]);
                 }
             }
@@ -143,7 +146,7 @@ class ProductService
                             if ($variant->gambar) {
                                 Storage::disk('public')->delete($variant->gambar);
                             }
-                            $variantPath = $variantData['gambar']->store('variants', 'public');
+                            $variantPath = $this->optimizeAndStoreUploadedImage($variantData['gambar'], 'variants', 800, 80);
                         }
 
                         $variant->update([

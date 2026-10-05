@@ -1,6 +1,46 @@
 @extends('layouts.admin')
 
 @section('content_admin')
+<!-- Tom Select CSS & JS -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+<style>
+    .ts-wrapper {
+        width: 100% !important;
+    }
+    .ts-wrapper .ts-control {
+        padding: 0.65rem 1rem !important;
+        font-size: 0.92rem !important;
+        border-radius: 0.5rem !important;
+        border: 1px solid #e2e8f0 !important;
+        background-color: #f8fafc !important;
+        box-shadow: none !important;
+    }
+    .ts-wrapper.focus .ts-control {
+        border-color: #0ea5e9 !important;
+        background-color: #fff !important;
+        box-shadow: 0 0 0 0.25rem rgba(14, 165, 233, 0.15) !important;
+    }
+    .ts-dropdown {
+        border-radius: 0.65rem !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 0.35rem !important;
+        background-color: #fff !important;
+        z-index: 1050 !important;
+    }
+    .ts-dropdown .option {
+        padding: 0.55rem 0.85rem !important;
+        border-radius: 0.4rem !important;
+        font-size: 0.88rem !important;
+    }
+    .ts-dropdown .active {
+        background-color: #0ea5e9 !important;
+        color: #fff !important;
+    }
+</style>
+
 <div class="container-fluid">
     {{-- PAGE HEADER --}}
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
@@ -48,7 +88,7 @@
                                 <small class="text-muted">Deskripsi pendek promosi.</small>
                             </div>
 
-                            {{-- LINK REDIREKSI --}}
+                            {{-- LINK REDIREKSI DENGAN FITUR SEARCH --}}
                             <div class="col-md-8 mb-4">
                                 <label class="form-label fw-semibold">Produk Tujuan Link Banner (Opsional)</label>
                                 @php
@@ -65,11 +105,11 @@
                                     @foreach($products as $product)
                                         <option value="{{ $product->id }}"
                                             {{ $selectedProductId == $product->id ? 'selected' : '' }}>
-                                            {{ $product->nama_barang }}
+                                            {{ $product->nama_barang }} ({{ $product->category->nama_kategori ?? 'Umum' }})
                                         </option>
                                     @endforeach
                                 </select>
-                                <small class="text-muted">Jika dipilih, klik banner akan langsung menuju halaman produk tersebut.</small>
+                                <small class="text-muted">Ketik nama barang di kolom di atas untuk mencari dari ratusan produk.</small>
                             </div>
 
 
@@ -131,6 +171,21 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('product_id')) {
+        new TomSelect('#product_id', {
+            create: false,
+            sortField: {
+                field: 'text',
+                direction: 'asc'
+            },
+            placeholder: '🔍 Ketik nama produk untuk mencari (misal: OXVA, RELX, Liquid)...',
+            allowEmptyOption: true,
+            maxOptions: 500,
+        });
+    }
+});
+
 function previewImage(event) {
     const reader = new FileReader();
     reader.onload = function() {

@@ -11,16 +11,10 @@
                 <span>21+</span>
             </div>
         </div>
-
-        {{-- Legal Tag Pill --}}
-        <div class="age-compliance-pill">
-            <i class="fas fa-shield-check text-teal me-1"></i>
-            <span>Verifikasi Usia Resmi &bull; PP No. 28/2024</span>
-        </div>
         
-        <h3 class="age-title">Konfirmasi Usia Pengguna</h3>
+        <h3 class="age-title">Age Verification</h3>
         <p class="age-subtitle">
-            Sesuai Peraturan Pemerintah RI, situs ini menyediakan produk khusus pengguna dewasa berusia <strong>21 tahun ke atas</strong>.
+            Situs ini menyediakan produk khusus bagi pengguna dewasa berusia <strong>21 tahun ke atas</strong>.
         </p>
 
         <div class="age-question-box">
@@ -49,7 +43,7 @@
                     </div>
                     <div>
                         <strong class="d-block text-danger mb-1">Akses Tidak Diizinkan</strong>
-                        <span class="small text-secondary">Mohon maaf, Anda belum memenuhi syarat usia legal. Anda akan dialihkan sebentar lagi...</span>
+                        <span class="small text-secondary">Mohon maaf, Anda belum memenuhi syarat usia. Anda akan dialihkan sebentar lagi...</span>
                     </div>
                 </div>
             </div>
@@ -57,7 +51,7 @@
 
         <div class="age-footer-note">
             <i class="fas fa-lock me-1 text-secondary opacity-75"></i>
-            Dengan melanjutkan, Anda mengonfirmasi kebenaran data usia Anda secara sah.
+            Dengan melanjutkan, Anda mengonfirmasi kebenaran data usia Anda.
         </div>
     </div>
 </div>
@@ -312,47 +306,35 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const STORAGE_KEY = 'podgasm_age_verified_21';
-    const COOKIE_NAME = 'podgasm_age_verified';
-    
-    // Helper check cookie
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-    }
-
-    // Helper set cookie (valid for 30 days)
-    function setCookie(name, value, days) {
-        const d = new Date();
-        d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-        const expires = "expires=" + d.toUTCString();
-        document.cookie = `${name}=${value}; ${expires}; path=/; SameSite=Lax`;
-    }
-
-    const isVerifiedLocal = localStorage.getItem(STORAGE_KEY) === 'true';
-    const isVerifiedCookie = getCookie(COOKIE_NAME) === 'true';
-
+    const SESSION_KEY = 'podgasm_session_age_verified';
     const overlay = document.getElementById('ageVerificationOverlay');
     const btnYes = document.getElementById('btnAgeYes');
     const btnNo = document.getElementById('btnAgeNo');
     const actionsDiv = document.getElementById('ageVerificationActions');
     const deniedDiv = document.getElementById('ageVerificationDenied');
 
-    if (!isVerifiedLocal && !isVerifiedCookie) {
-        // Tampilkan modal verifikasi usia
-        overlay.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+    // Cek apakah user sudah verifikasi di sesi browser ini atau sedang melakukan filter/pencarian
+    const isVerifiedSession = sessionStorage.getItem(SESSION_KEY) === 'true';
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasFilterParams = urlParams.has('sort') || urlParams.has('category') || urlParams.has('page') || urlParams.has('search');
+
+    if (!isVerifiedSession && !hasFilterParams) {
+        // Tampilkan modal verifikasi hanya saat pertama kali membuka website
+        if (overlay) {
+            overlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    } else {
+        // Jika sudah terverifikasi / sedang filter, tandai sesi tetap aktif
+        sessionStorage.setItem(SESSION_KEY, 'true');
     }
 
     if (btnYes) {
         btnYes.addEventListener('click', function() {
-            // Simpan status verifikasi
-            localStorage.setItem(STORAGE_KEY, 'true');
-            setCookie(COOKIE_NAME, 'true', 30); // simpan 30 hari
+            // Simpan status verifikasi di sesi browser (selama tab/browser aktif)
+            sessionStorage.setItem(SESSION_KEY, 'true');
 
-            // Sembunyikan modal & kembalikan scroll
+            // Sembunyikan modal dengan animasi halus & kembalikan scroll halaman
             overlay.style.animation = 'ageOverlayFadeIn 0.25s ease-in reverse forwards';
             setTimeout(function() {
                 overlay.style.display = 'none';
@@ -363,14 +345,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (btnNo) {
         btnNo.addEventListener('click', function() {
+            // Hapus sesi jika menolak
+            sessionStorage.removeItem(SESSION_KEY);
+
             // Sembunyikan tombol & tampilkan pesan penolakan
             actionsDiv.style.display = 'none';
             deniedDiv.style.display = 'block';
 
-            // Dialihkan ke Google setelah 2.5 detik
+            // Dialihkan ke Google setelah 2 detik
             setTimeout(function() {
                 window.location.href = 'https://www.google.com';
-            }, 2500);
+            }, 2000);
         });
     }
 });

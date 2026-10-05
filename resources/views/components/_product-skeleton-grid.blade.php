@@ -1,5 +1,5 @@
 {{-- Skeleton Loading Placeholder Grid --}}
-<div id="productGridSkeleton" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 g-xl-5 mb-5">
+<div id="productGridSkeleton" class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4 g-xl-5 mb-5">
     @for($i = 0; $i < 8; $i++)
     <div class="col">
         <div class="product-skeleton-card">

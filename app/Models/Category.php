@@ -22,6 +22,24 @@ class Category extends Model
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
+    public const EXCLUDED_PUBLIC_SLUGS = [
+        'soft-drink',
+        'soft-drinks',
+        'minuman',
+    ];
+
+    /**
+     * Scope untuk kategori yang boleh tampil di frontend publik
+     */
+    public function scopePublicVisible($query)
+    {
+        return $query->whereNotIn('slug', self::EXCLUDED_PUBLIC_SLUGS)
+            ->where(function($q) {
+                $q->where('nama_kategori', 'NOT LIKE', '%SOFT DRINK%')
+                  ->where('nama_kategori', 'NOT LIKE', '%MINUMAN%');
+            });
+    }
+
     public function products()
     {
         return $this->hasMany(Product::class);

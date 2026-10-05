@@ -24,26 +24,24 @@ class CheckoutRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[a-zA-Z\s\-\.\']+$/', // Hanya huruf, spasi, dash, dot, apostrof
             ],
             'email' => [
                 'required',
                 'email',
                 'max:255',
-                'regex:/^[a-zA-Z0-9._\-@]+$/', // Validasi format email ketat
             ],
             'no_telp' => [
                 'required',
-                'numeric',
-                'digits_between:10,15', // 10-15 digit
-                'regex:/^(0|62)[0-9]{9,13}$/', // Nomor lokal atau internasional
+                'string',
+                'min:10',
+                'max:16',
+                'regex:/^(\+62|62|0)[0-9]{8,14}$/', // Mendukung format 08xx, 628xx, +628xx
             ],
             'alamat_pengiriman' => [
                 'required',
                 'string',
                 'min:10',
                 'max:500',
-                'regex:/^[a-zA-Z0-9\s\.\,\-\(\)]+$/', // Alamat format valid
             ],
             'metode_pembayaran' => [
                 'required',
@@ -55,10 +53,30 @@ class CheckoutRequest extends FormRequest
                 'string',
                 'max:100',
             ],
+            'destination_latitude' => [
+                'nullable',
+                'numeric',
+                'between:-90,90',
+            ],
+            'destination_longitude' => [
+                'nullable',
+                'numeric',
+                'between:-180,180',
+            ],
             'kurir' => [
                 'nullable',
                 'string',
                 'max:100',
+            ],
+            'courier_company' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
+            'courier_type' => [
+                'nullable',
+                'string',
+                'max:50',
             ],
             'layanan' => [
                 'nullable',
@@ -71,7 +89,7 @@ class CheckoutRequest extends FormRequest
                 'min:0',
             ],
             'age_confirmation' => [
-                'accepted',
+                $this->user() && $this->user()->role === 'branch' ? 'nullable' : 'accepted',
             ],
         ];
     }

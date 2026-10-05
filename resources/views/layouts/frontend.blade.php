@@ -27,6 +27,9 @@
     {{-- SweetAlert2 --}}
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 
+    {{-- Page-specific Styles --}}
+    @stack('styles')
+
     {{-- Theme Initialization Script (Prevents White Flash in Dark Mode) --}}
     <script>
         (function() {
@@ -60,6 +63,7 @@
         }
 
         html {
+            font-size: 14.5px; /* Standar compact scaling untuk look & feel modern minimalis */
             overflow-y: scroll;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
@@ -68,10 +72,11 @@
             background: #ffffff;
             min-height: 100vh;
             color: #0f172a;
+            font-size: 0.92rem;
             position: relative;
             z-index: 0;
             overflow-x: hidden;
-            padding-top: 130px; /* Space untuk top bar + navbar desktop */
+            padding-top: 108px; /* Space untuk top bar + navbar sleek */
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
@@ -118,9 +123,7 @@
             color: #94a3b8 !important;
         }
 
-        body.dark-mode .surfeit-image-box,
         body.dark-mode .surfeit-subcategory-card,
-        body.dark-mode .product-img-wrapper,
         body.dark-mode .bg-slate-50,
         body.dark-mode .bg-light,
         body.dark-mode .bg-f4,
@@ -128,12 +131,74 @@
             background-color: #1e293b !important;
         }
 
+        body.dark-mode .surfeit-image-box,
+        html[data-bs-theme="dark"] .surfeit-image-box,
+        body.dark-mode .surfeit-product-wrapper,
+        html[data-bs-theme="dark"] .surfeit-product-wrapper {
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        body.dark-mode .surfeit-product-wrapper:hover .surfeit-image-box,
+        html[data-bs-theme="dark"] .surfeit-product-wrapper:hover .surfeit-image-box {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+
+        body.dark-mode .product-img-wrapper {
+            background-color: transparent !important;
+            border: none !important;
+        }
+
+        body.dark-mode .card.border-0 {
+            border: none !important;
+        }
+
+        /* SURFEIT SUBCATEGORY CARD STYLES */
+        .surfeit-subcategory-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .surfeit-subcategory-card .category-icon-box {
+            background: linear-gradient(180deg, #f1f5f9 0%, #f8fafc 100%);
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.25s ease;
+        }
+        .surfeit-subcategory-card .category-card-label {
+            background-color: #ffffff;
+            transition: background 0.25s ease;
+        }
+        .surfeit-subcategory-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.08);
+            border-color: #09afb9 !important;
+        }
+        .surfeit-subcategory-card:hover .category-card-label span {
+            color: #09afb9 !important;
+        }
+
         /* PERBAIKAN TEMA GELAP KATEGORI: Ubah background icon container & invert warna icon agar putih kontras tinggi */
-        body.dark-mode .surfeit-subcategory-card > div:first-child,
-        body.dark-mode .category-icon-box,
-        html[data-bs-theme="dark"] .surfeit-subcategory-card > div:first-child,
-        html[data-bs-theme="dark"] .category-icon-box {
-            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+        body.dark-mode .surfeit-subcategory-card,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card {
+            background-color: #1a2234 !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+        body.dark-mode .surfeit-subcategory-card .category-icon-box,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card .category-icon-box {
+            background: linear-gradient(180deg, #0f172a 0%, #1a2234 100%) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        }
+        body.dark-mode .surfeit-subcategory-card .category-card-label,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card .category-card-label {
+            background-color: #1a2234 !important;
+        }
+        body.dark-mode .surfeit-subcategory-card .category-card-label span,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card .category-card-label span {
+            color: #e2e8f0 !important;
         }
 
         body.dark-mode .surfeit-subcategory-card img,
@@ -145,12 +210,13 @@
 
         body.dark-mode .surfeit-subcategory-card:hover,
         html[data-bs-theme="dark"] .surfeit-subcategory-card:hover {
-            background-color: #334155 !important;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 24px -2px rgba(0, 212, 255, 0.25);
+            border-color: #00d4ff !important;
         }
-
-        body.dark-mode .surfeit-subcategory-card:hover > div:first-child,
-        html[data-bs-theme="dark"] .surfeit-subcategory-card:hover > div:first-child {
-            background: linear-gradient(180deg, #1e293b 0%, #334155 100%) !important;
+        body.dark-mode .surfeit-subcategory-card:hover .category-card-label span,
+        html[data-bs-theme="dark"] .surfeit-subcategory-card:hover .category-card-label span {
+            color: #00d4ff !important;
         }
 
         /* ACTIVE CATEGORY CARD HIGHLIGHT & GLOW */
@@ -167,10 +233,114 @@
         html[data-bs-theme="dark"] .surfeit-subcategory-card.active-category-card {
             border: 2px solid #00d4ff !important;
             box-shadow: 0 4px 22px rgba(0, 212, 255, 0.55), 0 0 0 2px rgba(9, 175, 185, 0.35) !important;
+            transform: translateY(-3px) !important;
         }
         body.dark-mode .surfeit-subcategory-card.active-category-card .category-icon-box,
         html[data-bs-theme="dark"] .surfeit-subcategory-card.active-category-card .category-icon-box {
             background: linear-gradient(180deg, #0f766e 0%, #1e293b 100%) !important;
+        }
+
+        /* DARK MODE FOR FORMS, TABLES, CHECKOUT & TRANSACTIONS */
+        body.dark-mode .form-control,
+        body.dark-mode .form-select,
+        html[data-bs-theme="dark"] .form-control,
+        html[data-bs-theme="dark"] .form-select {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .form-control:focus,
+        body.dark-mode .form-select:focus,
+        html[data-bs-theme="dark"] .form-control:focus,
+        html[data-bs-theme="dark"] .form-select:focus {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25) !important;
+        }
+
+        body.dark-mode .table,
+        body.dark-mode .table th,
+        body.dark-mode .table td,
+        html[data-bs-theme="dark"] .table,
+        html[data-bs-theme="dark"] .table th,
+        html[data-bs-theme="dark"] .table td {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border-color: #1e293b !important;
+        }
+
+        body.dark-mode .payment-card,
+        html[data-bs-theme="dark"] .payment-card {
+            background-color: #0f172a !important;
+            border-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .payment-radio:checked + .payment-card,
+        html[data-bs-theme="dark"] .payment-radio:checked + .payment-card {
+            background-color: #1e293b !important;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2) !important;
+        }
+
+        body.dark-mode .list-group-item,
+        html[data-bs-theme="dark"] .list-group-item {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border-color: #1e293b !important;
+        }
+
+        body.dark-mode .product-card-title,
+        body.dark-mode .product-card-price,
+        html[data-bs-theme="dark"] .product-card-title,
+        html[data-bs-theme="dark"] .product-card-price {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .product-card-cat,
+        html[data-bs-theme="dark"] .product-card-cat {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .btn-light,
+        html[data-bs-theme="dark"] .btn-light {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .alert-light,
+        html[data-bs-theme="dark"] .alert-light {
+            background-color: #1e293b !important;
+            color: #cbd5e1 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode #mobileStickyBar,
+        html[data-bs-theme="dark"] #mobileStickyBar {
+            background-color: #0f172a !important;
+            border-top: 1px solid #1e293b !important;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        /* GLOBAL FILTER & SORT DARK MODE */
+        body.dark-mode .filter-sort-btn,
+        html[data-bs-theme="dark"] .filter-sort-btn {
+            color: #f8fafc !important;
+        }
+        body.dark-mode .filter-sort-label,
+        html[data-bs-theme="dark"] .filter-sort-label {
+            border-bottom-color: #f8fafc !important;
+        }
+        body.dark-mode .filter-sort-btn:hover,
+        html[data-bs-theme="dark"] .filter-sort-btn:hover {
+            color: #38bdf8 !important;
+        }
+        body.dark-mode .items-counter-text,
+        html[data-bs-theme="dark"] .items-counter-text {
+            color: #94a3b8 !important;
         }
 
         /* SKELETON SHIMMER LOADING PLACEHOLDER */
@@ -202,27 +372,41 @@
 
         /* LUXURY PRICING TIER COMPONENT */
         .card-pricing-tier {
-            background: #ffffff;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 16px;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
         }
 
         .card-pricing-tier-title {
             color: #0f172a !important;
         }
 
+        .tier-highlight-badge {
+            background: #0f172a !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+
         /* DARK MODE PRICING TIER CONTAINER */
         body.dark-mode .card-pricing-tier,
         html[data-bs-theme="dark"] .card-pricing-tier {
-            background: rgba(30, 41, 59, 0.5) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
         }
 
         body.dark-mode .card-pricing-tier-title,
         html[data-bs-theme="dark"] .card-pricing-tier-title {
             color: #f8fafc !important;
+        }
+
+        body.dark-mode .tier-highlight-badge,
+        html[data-bs-theme="dark"] .tier-highlight-badge {
+            background: #1e293b !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
         }
 
         /* TIER CARDS STYLING */
@@ -286,12 +470,49 @@
             color: #ffffff !important;
         }
 
+        /* VARIANT BUTTONS STYLING */
+        .variant-btn {
+            transition: all 0.2s ease;
+            border-width: 1.5px;
+        }
+
+        body.dark-mode .variant-btn.btn-outline-primary,
+        html[data-bs-theme="dark"] .variant-btn.btn-outline-primary {
+            color: #38bdf8 !important;
+            border-color: rgba(56, 189, 248, 0.35) !important;
+            background-color: rgba(15, 23, 42, 0.6) !important;
+        }
+
+        body.dark-mode .variant-btn.btn-outline-primary:hover,
+        html[data-bs-theme="dark"] .variant-btn.btn-outline-primary:hover {
+            color: #ffffff !important;
+            border-color: #38bdf8 !important;
+            background-color: rgba(56, 189, 248, 0.2) !important;
+        }
+
+        body.dark-mode .variant-btn.btn-primary,
+        html[data-bs-theme="dark"] .variant-btn.btn-primary {
+            color: #ffffff !important;
+            border-color: #09afb9 !important;
+            background: linear-gradient(135deg, #09afb9 0%, #0284c7 100%) !important;
+            box-shadow: 0 0 14px rgba(9, 175, 185, 0.4) !important;
+        }
+
         /* Category Slider Drag Scroll & Navigation Buttons */
         .category-drag-scroll {
             user-select: none;
             -webkit-user-select: none;
             touch-action: pan-x;
             scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .category-drag-scroll * {
+            user-drag: none;
+            -webkit-user-drag: none;
+        }
+        .category-drag-scroll.is-dragging {
+            cursor: grabbing !important;
+            scroll-behavior: auto !important;
         }
         .category-scroll-btn {
             display: inline-flex;
@@ -321,8 +542,9 @@
             color: #ffffff !important;
         }
 
-        body.dark-mode .surfeit-product-wrapper:hover .surfeit-image-box {
-            background-color: #334155 !important;
+        body.dark-mode .surfeit-product-wrapper:hover .surfeit-image-box,
+        html[data-bs-theme="dark"] .surfeit-product-wrapper:hover .surfeit-image-box {
+            background-color: rgba(255, 255, 255, 0.04) !important;
         }
 
         body.dark-mode .border-light,
@@ -357,6 +579,32 @@
             background-color: #1e293b !important;
             color: #f59e0b !important;
             border: 1px solid #334155 !important;
+        }
+
+        /* Dark Mode Modal Enhancements */
+        body.dark-mode .modal-content,
+        html[data-bs-theme="dark"] .modal-content {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #1e293b !important;
+        }
+
+        body.dark-mode .modal-header,
+        html[data-bs-theme="dark"] .modal-header,
+        body.dark-mode .modal-footer,
+        html[data-bs-theme="dark"] .modal-footer {
+            background-color: #0f172a !important;
+            border-color: #1e293b !important;
+        }
+
+        body.dark-mode .modal-header .btn-close,
+        html[data-bs-theme="dark"] .modal-header .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        body.dark-mode .modal-title,
+        html[data-bs-theme="dark"] .modal-title {
+            color: #ffffff !important;
         }
 
         @media(max-width: 768px){
@@ -698,18 +946,292 @@
             100% { transform: scale(1); }
         }
 
-        /* ================= RESPONSIVE ================= */
+        /* ================= BASE & RESPONSIVE STYLING FOR ALL DEVICES ================= */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+            padding-top: 96px !important;
+        }
 
-        @media(max-width: 768px){
+        .navbar-logo {
+            height: 44px !important;
+            max-height: 48px !important;
+            width: auto !important;
+            max-width: 220px !important;
+            object-fit: contain !important;
+            display: block;
+        }
 
-            main{
-                padding: 20px 14px;
+        .btn-icon-nav,
+        #themeToggleBtn {
+            width: 38px !important;
+            height: 38px !important;
+            background-color: #f8fafc;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon-nav i,
+        #themeToggleBtn i {
+            font-size: 0.92rem;
+        }
+
+        @media(max-width: 991.98px) {
+            body {
+                padding-top: 86px !important;
+            }
+            .surfeit-image-box {
+                height: 210px !important;
+                padding: 12px !important;
+            }
+            .surfeit-floating-img {
+                max-height: 165px !important;
+            }
+        }
+
+        @media(max-width: 767.98px) {
+            body {
+                padding-top: 84px !important;
+                font-size: 0.88rem;
             }
 
-            .card-body{
-                padding: 18px;
+            main {
+                padding: 8px 0 !important;
             }
 
+            .container-fluid {
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+            }
+
+            .top-announcement-bar {
+                font-size: 0.72rem !important;
+                padding: 4px 8px !important;
+            }
+
+            .navbar-logo {
+                height: 30px !important;
+                max-height: 32px !important;
+            }
+
+            .btn-icon-nav,
+            #themeToggleBtn {
+                width: 32px !important;
+                height: 32px !important;
+            }
+
+            .btn-icon-nav i,
+            #themeToggleBtn i {
+                font-size: 0.78rem !important;
+            }
+
+            .card-body {
+                padding: 12px;
+            }
+
+            .surfeit-image-box {
+                height: 170px !important;
+                padding: 10px !important;
+            }
+
+            .surfeit-floating-img {
+                max-height: 135px !important;
+            }
+
+            .product-card-title {
+                font-size: 0.84rem !important;
+            }
+
+            .product-card-cat {
+                font-size: 0.72rem !important;
+            }
+
+            .price-text {
+                font-size: 0.85rem !important;
+            }
+
+            .surfeit-category-title {
+                font-size: 1.45rem !important;
+            }
+
+            .surfeit-subcategory-card {
+                width: 95px !important;
+            }
+
+            .surfeit-subcategory-card .category-icon-box {
+                height: 60px !important;
+            }
+
+            #offcanvasCart {
+                width: 100vw !important;
+                max-width: 100vw !important;
+                border-radius: 0 !important;
+            }
+        }
+
+        /* ================= OFFCANVAS CART PRECISION STYLES ================= */
+        #offcanvasCart {
+            z-index: 100010 !important;
+            width: 420px;
+            max-width: 100vw;
+            border-left: 1px solid rgba(0, 0, 0, 0.08);
+            background-color: #ffffff;
+        }
+        .offcanvas-backdrop {
+            z-index: 100005 !important;
+            background-color: rgba(15, 23, 42, 0.65) !important;
+            backdrop-filter: blur(4px) !important;
+        }
+        #offcanvasCart .offcanvas-header {
+            height: 62px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        #offcanvasCart .offcanvas-body {
+            height: calc(100vh - 62px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Dark Theme Support for Offcanvas */
+        body.dark-mode #offcanvasCart,
+        html[data-bs-theme="dark"] #offcanvasCart {
+            background-color: #0b1324 !important;
+            color: #f8fafc !important;
+            border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        body.dark-mode #offcanvasCart .offcanvas-header,
+        html[data-bs-theme="dark"] #offcanvasCart .offcanvas-header {
+            background-color: #0f172a !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #f8fafc !important;
+        }
+        body.dark-mode #offcanvasCart .btn-close,
+        html[data-bs-theme="dark"] #offcanvasCart .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        body.dark-mode #offcanvasCart .offcanvas-body,
+        html[data-bs-theme="dark"] #offcanvasCart .offcanvas-body {
+            background-color: #0b1324 !important;
+        }
+
+        /* Address Card & Verified Area Box (Light & Dark Theme) */
+        .address-card-item {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0 !important;
+            transition: all 0.2s ease;
+        }
+        .address-card-item.is-primary {
+            border: 2px solid #0f172a !important;
+        }
+        .verified-area-box {
+            background-color: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            color: #334155 !important;
+        }
+        .verified-area-box .area-title {
+            color: #0f172a !important;
+        }
+        .verified-area-box .area-postal {
+            color: #64748b !important;
+        }
+
+        /* Dark Theme Global Components (Cards, Modals, Forms) */
+        body.dark-mode .card,
+        html[data-bs-theme="dark"] .card {
+            background-color: #111827 !important;
+            color: #f8fafc !important;
+            border-color: #1f2937 !important;
+        }
+        body.dark-mode .address-card-item,
+        html[data-bs-theme="dark"] .address-card-item {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        body.dark-mode .address-card-item.is-primary,
+        html[data-bs-theme="dark"] .address-card-item.is-primary {
+            border: 2px solid #60a5fa !important;
+            box-shadow: 0 0 15px rgba(96, 165, 250, 0.15) !important;
+        }
+        body.dark-mode .verified-area-box,
+        html[data-bs-theme="dark"] .verified-area-box {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+            color: #cbd5e1 !important;
+        }
+        body.dark-mode .verified-area-box .area-title,
+        html[data-bs-theme="dark"] .verified-area-box .area-title {
+            color: #f8fafc !important;
+        }
+        body.dark-mode .verified-area-box .area-postal,
+        html[data-bs-theme="dark"] .verified-area-box .area-postal {
+            color: #94a3b8 !important;
+        }
+        body.dark-mode .verified-area-box i,
+        html[data-bs-theme="dark"] .verified-area-box i {
+            color: #60a5fa !important;
+        }
+        body.dark-mode .badge-theme-label,
+        html[data-bs-theme="dark"] .badge-theme-label {
+            background-color: #334155 !important;
+            color: #f8fafc !important;
+            border: 1px solid #475569 !important;
+        }
+        body.dark-mode .modal-content,
+        html[data-bs-theme="dark"] .modal-content {
+            background-color: #111827 !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+        body.dark-mode .modal-header,
+        html[data-bs-theme="dark"] .modal-header {
+            background-color: #1e293b !important;
+            border-bottom-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        body.dark-mode .modal-footer,
+        html[data-bs-theme="dark"] .modal-footer {
+            background-color: #1e293b !important;
+            border-top-color: #334155 !important;
+        }
+        body.dark-mode .modal-header .btn-close,
+        html[data-bs-theme="dark"] .modal-header .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        body.dark-mode .form-control,
+        html[data-bs-theme="dark"] .form-control {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+        body.dark-mode .form-control:focus,
+        html[data-bs-theme="dark"] .form-control:focus {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            border-color: #6366f1 !important;
+        }
+        body.dark-mode .text-dark,
+        html[data-bs-theme="dark"] .text-dark {
+            color: #f8fafc !important;
+        }
+        body.dark-mode .text-muted,
+        body.dark-mode .text-secondary,
+        html[data-bs-theme="dark"] .text-muted,
+        html[data-bs-theme="dark"] .text-secondary {
+            color: #94a3b8 !important;
+        }
+        body.dark-mode .bg-light,
+        html[data-bs-theme="dark"] .bg-light {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+        body.dark-mode .border,
+        html[data-bs-theme="dark"] .border {
+            border-color: #334155 !important;
         }
 
     </style>
@@ -738,12 +1260,13 @@
     @include('components._footer')
 
     {{-- Global Offcanvas Cart --}}
-    <div class="offcanvas offcanvas-end shadow" tabindex="-1" id="offcanvasCart" aria-labelledby="offcanvasCartLabel" style="width: 400px; border-left: none;">
-        <div class="offcanvas-header border-bottom py-3">
-            <h5 class="offcanvas-title fw-bold" id="offcanvasCartLabel">
-                <i class="fas fa-shopping-cart text-primary me-2"></i> Keranjang Belanja
+    <div class="offcanvas offcanvas-end border-0 shadow-2xl" tabindex="-1" id="offcanvasCart" aria-labelledby="offcanvasCartLabel">
+        <div class="offcanvas-header py-3 flex-shrink-0 px-3.5">
+            <h5 class="offcanvas-title fw-bold d-flex align-items-center gap-2 mb-0" id="offcanvasCartLabel">
+                <i class="fas fa-shopping-bag text-primary"></i>
+                <span>Keranjang Belanja</span>
             </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body p-0" id="offcanvasCartBody">
             <div class="d-flex justify-content-center align-items-center h-100">
@@ -832,14 +1355,17 @@
             });
         });
         
-        // Function to show toast notification with SweetAlert2
+        // Function to show toast notification with SweetAlert2 (Theme-Aware)
         function showToast(message, type = 'success', duration = 3000) {
+            const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark' || document.body.classList.contains('dark-mode');
             const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
                 showConfirmButton: false,
                 timer: duration,
                 timerProgressBar: true,
+                background: isDark ? '#182234' : '#ffffff',
+                color: isDark ? '#f8fafc' : '#0f172a',
                 didOpen: (toast) => {
                     toast.addEventListener('mouseenter', Swal.stopTimer)
                     toast.addEventListener('mouseleave', Swal.resumeTimer)
@@ -852,10 +1378,13 @@
             });
         }
         
+        // ==========================================
+        // 🛒 ENHANCED CART ANIMATION & COUNTER SUITE
+        // ==========================================
+
         // Function to update cart count with animation
         function updateCartCount(newCount) {
-            const cartBtn = document.querySelector('.navbar .fa-shopping-cart').closest('.btn');
-            
+            const cartBtn = document.getElementById('navbarCartBtn') || document.querySelector('.navbar button[data-bs-target="#offcanvasCart"]');
             if (!cartBtn) return;
             
             // Add animation styles if not present
@@ -864,70 +1393,288 @@
                 const style = document.createElement('style');
                 style.id = styleId;
                 style.textContent = `
-                    @keyframes badge-pulse {
-                        0% { 
-                            transform: scale(1);
-                            opacity: 1;
-                        }
-                        50% {
-                            transform: scale(1.3);
-                        }
-                        100% { 
-                            transform: scale(1);
-                            opacity: 1;
-                        }
+                    @keyframes badge-pop {
+                        0% { transform: scale(0.6) translate(-50%, -50%); opacity: 0; }
+                        50% { transform: scale(1.4) translate(-35%, -35%); opacity: 1; }
+                        100% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
+                    }
+                    @keyframes cart-bounce {
+                        0%, 100% { transform: translateY(0); }
+                        30% { transform: translateY(-6px) scale(1.1); }
+                        60% { transform: translateY(2px) scale(0.95); }
                     }
                     .cart-badge-pulse {
-                        animation: badge-pulse 0.4s ease-out !important;
+                        animation: badge-pop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+                    }
+                    .cart-btn-bounce {
+                        animation: cart-bounce 0.5s ease !important;
+                    }
+                    .fly-to-cart-clone {
+                        position: fixed;
+                        z-index: 999999;
+                        border-radius: 12px;
+                        filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+                        pointer-events: none;
+                        transition: all 0.65s cubic-bezier(0.2, 0.9, 0.3, 1);
+                        object-fit: contain;
+                        background: transparent !important;
                     }
                 `;
                 document.head.appendChild(style);
             }
             
-            // Find the existing badge in navbar (use .badge-counter selector)
-            let badge = cartBtn.querySelector('.badge-counter');
+            // Trigger cart button bounce
+            cartBtn.classList.add('cart-btn-bounce');
+            setTimeout(() => cartBtn.classList.remove('cart-btn-bounce'), 550);
+
+            // Find or create badge
+            let badge = cartBtn.querySelector('.cart-badge-counter') || cartBtn.querySelector('.badge');
             
             if (newCount > 0) {
-                if (badge) {
-                    // Update existing badge
-                    badge.textContent = newCount;
-                    badge.classList.add('cart-badge-pulse');
-                    
-                    // Remove animation class after it completes
-                    setTimeout(() => {
-                        if (badge && badge.parentNode) {
-                            badge.classList.remove('cart-badge-pulse');
-                        }
-                    }, 450);
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-circle bg-primary text-white border border-light cart-badge-counter';
+                    badge.style.fontSize = '0.55rem';
+                    badge.style.padding = '2px 4px';
+                    cartBtn.appendChild(badge);
                 }
+                
+                badge.textContent = newCount;
+                badge.classList.remove('cart-badge-pulse');
+                void badge.offsetWidth; // Trigger reflow
+                badge.classList.add('cart-badge-pulse');
             } else if (badge) {
-                // Remove badge if count is 0
                 badge.remove();
             }
         }
 
+        // Global Fly-to-Cart Animation
+        window.animateFlyToCart = function(sourceElement) {
+            const targetBtn = document.getElementById('navbarCartBtn') || document.querySelector('.navbar button[data-bs-target="#offcanvasCart"]');
+            if (!sourceElement || !targetBtn) return;
+
+            const sourceRect = sourceElement.getBoundingClientRect();
+            const targetRect = targetBtn.getBoundingClientRect();
+
+            // Create flying clone
+            const flyer = document.createElement('img');
+            flyer.className = 'fly-to-cart-clone';
+            flyer.src = sourceElement.src || (sourceElement.querySelector('img') ? sourceElement.querySelector('img').src : '{{ asset("LogoPodgasm.png") }}');
+            
+            // Set initial position matching source
+            flyer.style.width = Math.min(sourceRect.width, 120) + 'px';
+            flyer.style.height = Math.min(sourceRect.height, 120) + 'px';
+            flyer.style.top = sourceRect.top + 'px';
+            flyer.style.left = sourceRect.left + 'px';
+            flyer.style.opacity = '1';
+            
+            document.body.appendChild(flyer);
+
+            // Animate to target
+            requestAnimationFrame(() => {
+                flyer.style.top = (targetRect.top + targetRect.height / 2 - 15) + 'px';
+                flyer.style.left = (targetRect.left + targetRect.width / 2 - 15) + 'px';
+                flyer.style.width = '30px';
+                flyer.style.height = '30px';
+                flyer.style.opacity = '0.2';
+                flyer.style.transform = 'scale(0.3) rotate(360deg)';
+            });
+
+            // Cleanup after animation completes
+            setTimeout(() => {
+                if (flyer && flyer.parentNode) {
+                    flyer.remove();
+                }
+            }, 800);
+        };
+
         // Function to update wishlist count
         function updateWishlistCount(newCount) {
-            const wishlistBtn = document.querySelector('.fa-heart').closest('.btn');
-            if (wishlistBtn) {
-                const existingBadge = wishlistBtn.querySelector('.badge');
-                if (existingBadge) {
-                    existingBadge.remove();
-                }
-                
-                if (newCount > 0) {
-                    const badge = document.createElement('span');
-                    badge.className = 'badge bg-danger position-absolute top-0 start-100 translate-middle border border-light rounded-circle';
-                    badge.style.padding = '0.35em 0.5em';
-                    badge.textContent = newCount;
+            const wishlistBtn = document.getElementById('navbarWishlistBtn') || document.querySelector('.navbar a[href*="wishlist"]');
+            if (!wishlistBtn) return;
+
+            let badge = wishlistBtn.querySelector('.wishlist-badge-counter') || wishlistBtn.querySelector('.badge');
+            
+            if (newCount > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger text-white border border-light wishlist-badge-counter';
+                    badge.style.fontSize = '0.55rem';
+                    badge.style.padding = '2px 4px';
                     wishlistBtn.appendChild(badge);
                 }
+                badge.textContent = newCount;
+            } else if (badge) {
+                badge.remove();
             }
         }
-    </script>
 
-    {{-- Live Chat CS Widget for B2B/B2C without branch --}}
-    @include('components._cs-chat-widget')
+        // Global function to load offcanvas cart dynamically
+        function loadOffcanvasCart() {
+            const container = document.getElementById('offcanvasCartBody');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center h-100 py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Memuat keranjang...</span>
+                    </div>
+                </div>
+            `;
+
+            fetch("{{ route('cart.offcanvas') }}", {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            })
+            .then(res => {
+                if (res.status === 401) {
+                    return `
+                        <div class="d-flex flex-column justify-content-center align-items-center flex-grow-1 p-4 text-center h-100">
+                            <div class="icon-circle bg-light text-muted rounded-circle mb-3 d-flex align-items-center justify-content-center shadow-2xs" style="width: 76px; height: 76px;">
+                                <i class="fas fa-user-lock fa-2x opacity-40 text-primary"></i>
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1 offcanvas-text-title">Masuk ke Akun Anda</h6>
+                            <p class="text-muted small mb-4">Silakan login untuk melihat keranjang belanja dan melanjutkan transaksi.</p>
+                            <a href="{{ route('login') }}" class="btn btn-primary rounded-pill px-4 py-2.5 small fw-semibold shadow-sm">
+                                <i class="fas fa-sign-in-alt me-1.5"></i> Masuk Sekarang
+                            </a>
+                        </div>
+                    `;
+                }
+                return res.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                container.innerHTML = `
+                    <div class="p-4 text-center text-muted small">
+                        <i class="fas fa-exclamation-circle text-warning fa-2x mb-2"></i>
+                        <p class="mb-0">Gagal memuat mini cart.</p>
+                        <a href="{{ route('cart.index') }}" class="btn btn-primary btn-sm rounded-pill mt-2">Buka Halaman Keranjang</a>
+                    </div>
+                `;
+            });
+        }
+
+        // Global initialization function for Category Slider (Drag & Scroll)
+        function initCategorySlider() {
+            const container = document.getElementById('categoryScrollContainer');
+            const scrollNav = document.getElementById('categoryScrollNav');
+            const btnLeft = document.getElementById('btnScrollCatLeft');
+            const btnRight = document.getElementById('btnScrollCatRight');
+
+            if (!container) return;
+
+            // Check overflow to show/hide scroll buttons
+            function checkOverflow() {
+                if (!scrollNav) return;
+                const isOverflowing = container.scrollWidth > container.clientWidth + 4;
+                if (isOverflowing) {
+                    scrollNav.classList.remove('d-none');
+                    scrollNav.classList.add('d-flex');
+                } else {
+                    scrollNav.classList.remove('d-flex');
+                    scrollNav.classList.add('d-none');
+                }
+            }
+
+            checkOverflow();
+            window.addEventListener('resize', checkOverflow);
+
+            // 1. Navigation buttons
+            if (btnLeft && !btnLeft.dataset.hasListener) {
+                btnLeft.dataset.hasListener = 'true';
+                btnLeft.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    container.scrollBy({ left: -280, behavior: 'smooth' });
+                });
+            }
+            if (btnRight && !btnRight.dataset.hasListener) {
+                btnRight.dataset.hasListener = 'true';
+                btnRight.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    container.scrollBy({ left: 280, behavior: 'smooth' });
+                });
+            }
+
+            // 2. Mouse Drag & Scroll
+            let isDown = false;
+            let startX = 0;
+            let scrollLeft = 0;
+            let isDragging = false;
+
+            // Prevent native HTML5 ghost-drag on images and links
+            container.querySelectorAll('img, a').forEach(el => {
+                el.setAttribute('draggable', 'false');
+            });
+
+            container.addEventListener('mousedown', (e) => {
+                isDown = true;
+                isDragging = false;
+                container.classList.add('is-dragging');
+                startX = e.pageX - container.offsetLeft;
+                scrollLeft = container.scrollLeft;
+            });
+
+            const stopDrag = () => {
+                if (isDown) {
+                    isDown = false;
+                    container.classList.remove('is-dragging');
+                    setTimeout(() => { isDragging = false; }, 60);
+                }
+            };
+
+            window.addEventListener('mouseup', stopDrag);
+            container.addEventListener('mouseleave', stopDrag);
+
+            container.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                const x = e.pageX - container.offsetLeft;
+                const walk = (x - startX);
+                if (Math.abs(walk) > 4) {
+                    isDragging = true;
+                    e.preventDefault();
+                    container.scrollLeft = scrollLeft - walk;
+                }
+            });
+
+            // Prevent link click when dragging
+            container.addEventListener('click', (e) => {
+                if (isDragging) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true);
+
+            // 3. Mouse Wheel horizontal scroll
+            container.addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    container.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+
+            // 4. Auto-center active category card on load
+            const activeCard = container.querySelector('.active-category-card');
+            if (activeCard) {
+                const link = activeCard.closest('a') || activeCard;
+                setTimeout(() => {
+                    const containerWidth = container.clientWidth;
+                    const linkLeft = link.offsetLeft;
+                    const linkWidth = link.offsetWidth;
+                    container.scrollTo({
+                        left: linkLeft - (containerWidth / 2) + (linkWidth / 2),
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initCategorySlider);
+    </script>
 
     {{-- Age Verification Modal (21+) --}}
     @include('components._age-verification-modal')

@@ -42,36 +42,44 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        // Pastikan tidak error saat migrate atau running via terminal
+        // Pastikan tidak error saat migrate atau running via terminal atau jika database offline
         if (!app()->runningInConsole()) {
-            
-            // 1. Bagian Kategori (Yang sudah ada)
-            if (Schema::hasTable('categories')) {
-                $categories = Category::with('children')->whereNull('parent_id')->get();
-                View::share('categories', $categories);
-            }
+            try {
+                // 1. Bagian Kategori (Yang sudah ada)
+                if (Schema::hasTable('categories')) {
+                    $categories = Category::publicVisible()->with('children')->whereNull('parent_id')->get();
+                    View::share('categories', $categories);
+                }
 
-            // 2. Bagian Notifikasi Admin (TAMBAHKAN INI)
-            if (Schema::hasTable('stock_requests')) {
-                // Kita ambil jumlah request yang statusnya masih 'Pending'
-                $pendingRequestCount = StockRequest::where('status', 'Pending')->count();
-                
-                // Kita share variabel ini ke seluruh view (bisa diakses di sidebar)
-                View::share('pendingRequestCount', $pendingRequestCount);
-            }
+                // 2. Bagian Notifikasi Admin (TAMBAHKAN INI)
+                if (Schema::hasTable('stock_requests')) {
+                    // Kita ambil jumlah request yang statusnya masih 'Pending'
+                    $pendingRequestCount = StockRequest::where('status', 'Pending')->count();
+                    
+                    // Kita share variabel ini ke seluruh view (bisa diakses di sidebar)
+                    View::share('pendingRequestCount', $pendingRequestCount);
+                }
 
-            // 3. Bagian Notifikasi B2B Registration (TAMBAHKAN INI)
-            if (Schema::hasTable('b2b_registrations')) {
-                $pendingB2BCount = \App\Models\B2BRegistration::where('status', 'pending')->count();
-                View::share('pendingB2BCount', $pendingB2BCount);
-            }
+                // 3. Bagian Notifikasi B2B Registration (TAMBAHKAN INI)
+                if (Schema::hasTable('b2b_registrations')) {
+                    $pendingB2BCount = \App\Models\B2BRegistration::where('status', 'pending')->count();
+                    View::share('pendingB2BCount', $pendingB2BCount);
+                }
 
-            // 4. Bagian Notifikasi Chat CS (TAMBAHKAN INI)
-            if (Schema::hasTable('cs_messages')) {
-                $unreadCsCount = \App\Models\CsMessage::whereColumn('sender_id', 'user_id')
-                    ->where('is_read', false)
-                    ->count();
-                View::share('unreadCsCount', $unreadCsCount);
+                // 4. Bagian Notifikasi Chat CS (TAMBAHKAN INI)
+                if (Schema::hasTable('cs_messages')) {
+                    $unreadCsCount = \App\Models\CsMessage::whereColumn('sender_id', 'user_id')
+                        ->where('is_read', false)
+                        ->count();
+                    View::share('unreadCsCount', $unreadCsCount);
+                }
+            } catch (\Throwable $e) {
+                // Fallback jika database belum aktif atau sedang terkendala
+                \Illuminate\Support\Facades\Log::warning('Database unreachable in AppServiceProvider: ' . $e->getMessage());
+                View::share('categories', collect());
+                View::share('pendingRequestCount', 0);
+                View::share('pendingB2BCount', 0);
+                View::share('unreadCsCount', 0);
             }
         }
     }

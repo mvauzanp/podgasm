@@ -78,7 +78,8 @@ class CheckoutTest extends TestCase
             'metode_pembayaran' => 'transfer',
             'ongkir' => 15000,
             'kurir' => 'jne',
-            'layanan' => 'REG'
+            'layanan' => 'REG',
+            'age_confirmation' => '1',
         ];
 
         $response = $this->post(route('cart.processCheckout'), $checkoutData);
