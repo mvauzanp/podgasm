@@ -70,9 +70,14 @@ class OlseraWebhookController extends Controller
             // Mengeksekusi pemotongan/pembaruan stok secara instan (< 10ms) tanpa bergantung pada queue worker Hostinger
             ProcessOlseraWebhookJob::dispatchSync($payload);
 
-            // 5. Jika payload adalah notifikasi perubahan katalog umum tanpa detail data spesifik, antrekan delta sync
-            if (empty($payload['data']) || !is_array($payload['data'])) {
-                SyncOlseraDeltaJob::dispatch();
+            // 5. Jika payload adalah notifikasi event katalog/order umum tanpa detail item, jalankan delta sync seketika!
+            if (empty($payload['data']) || !is_array($payload['data']) || isset($payload['flag_webhook'])) {
+                try {
+                    SyncOlseraDeltaJob::dispatchSync();
+                } catch (\Throwable $deltaErr) {
+                    Log::warning('SyncOlseraDeltaJob dispatchSync error: ' . $deltaErr->getMessage());
+                    SyncOlseraDeltaJob::dispatch();
+                }
             }
 
             // 6. IMMEDIATE FAST-ACK HTTP 200 OK (< 30ms)

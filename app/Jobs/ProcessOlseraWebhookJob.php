@@ -75,7 +75,7 @@ class ProcessOlseraWebhookJob implements ShouldQueue
         // 3. Tangani Batch Item List (misal array pembaruan inventaris multi-produk)
         if (is_array($data) && isset($data[0]) && is_array($data[0])) {
             foreach ($data as $subItem) {
-                $subSku = $subItem['sku'] ?? $subItem['item_sku'] ?? $subItem['kode_barang'] ?? ($subItem['id'] ? 'SKU-P-' . $subItem['id'] : null);
+                $subSku = $subItem['sku'] ?? $subItem['item_sku'] ?? $subItem['kode_barang'] ?? (!empty($subItem['id']) ? 'SKU-P-' . $subItem['id'] : null);
                 $subStock = $subItem['stock_qty'] ?? $subItem['stock'] ?? $subItem['stok_aktual'] ?? null;
                 if ($subSku && $subStock !== null) {
                     $this->updateStockOnly((string) $subSku, (int) $subStock, $subItem);
@@ -91,7 +91,7 @@ class ProcessOlseraWebhookJob implements ShouldQueue
         }
 
         // 5. Tangani Pembaruan Stok Singkat (Stock / Inventory Update)
-        $sku = $data['sku'] ?? $data['item_sku'] ?? $data['kode_barang'] ?? ($data['id'] ? 'SKU-P-' . $data['id'] : null);
+        $sku = $data['sku'] ?? $data['item_sku'] ?? $data['kode_barang'] ?? (!empty($data['id']) ? 'SKU-P-' . $data['id'] : null);
         $newStock = $data['stock_qty'] ?? $data['stock'] ?? $data['stok_aktual'] ?? null;
 
         if ($sku && $newStock !== null) {

@@ -517,12 +517,13 @@ class OlseraApiService
             ];
         }
 
-        // Parameter query ke Endpoint Olsera
+        // Parameter query ke Endpoint Olsera (Urutkan dari produk yang paling baru diubah/terjual)
         $queryParams = [
-            'page' => $page,
-            'per_page' => $limit,
+            'page'        => $page,
+            'per_page'    => $limit,
+            'sort_column' => 'modified_time',
+            'sort_type'   => 'desc',
         ];
-
         // 🟢 FILTER OUTLET RESMI (Mencegah salah ambil stok cabang / multi-outlet mismatch)
         $targetOutletId = $outletId ?: $this->defaultOutletId;
         if (!empty($targetOutletId)) {
@@ -693,8 +694,9 @@ class OlseraApiService
         try {
             $page = 1;
             $hasMore = true;
+            $effectiveMaxPages = $forceFullSync ? $maxPages : 3; // Delta sync fokus ke 150 produk teratas yang baru diubah (super cepat < 2 detik)
 
-            while ($hasMore && $page <= $maxPages) {
+            while ($hasMore && $page <= $effectiveMaxPages) {
                 // Cek batas aman waktu eksekusi agar tidak terkena Nginx 504 Gateway Timeout
                 if ((microtime(true) - $startTime) > $maxSafeExecutionSeconds) {
                     Log::warning("Sinkronisasi Olsera dijeda pada halaman {$page} ({$maxSafeExecutionSeconds} detik) demi keamanan Nginx. Data yang sudah diproses tetap tersimpan.");
