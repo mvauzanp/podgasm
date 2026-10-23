@@ -370,4 +370,86 @@ class ProcessOlseraWebhookJobTest extends TestCase
         $product->refresh();
         $this->assertEquals(7, $product->stok_aktual);
     }
+
+    /**
+     * Skenario 9: Transaksi di POS Dibatalkan (Void / Sales Return) -> Stok bertambah kembali
+     */
+    public function test_it_handles_pos_void_or_sales_return_restocking(): void
+    {
+        $parent = Product::create([
+            'category_id' => $this->category->id,
+            'kode_barang' => 'VOID-TEST-PARENT',
+            'nama_barang' => 'Void Parent Item',
+            'slug'        => 'void-parent-item',
+            'harga_jual'  => 100000,
+            'harga_pokok' => 70000,
+            'stok_aktual' => 5,
+            'lead_time'   => 1,
+            'nilai_ss'    => 0,
+            'rata_penjualan' => 0
+        ]);
+
+        $variant = ProductVariant::create([
+            'product_id'  => $parent->id,
+            'nama_varian' => 'Void Variant Berry',
+            'kode_barang' => 'SKU-VOID-01',
+            'harga_jual'  => 100000,
+            'harga_pokok' => 70000,
+            'stok_aktual' => 5,
+            'lead_time'   => 1,
+            'nilai_ss'    => 0,
+            'rata_penjualan' => 0
+        ]);
+
+        // Kasir void pesanan di Olsera POS sehingga stok bertambah dari 5 kembali ke 6
+        $payload = [
+            'event' => 'stock_updated',
+            'data'  => [
+                'sku'       => 'SKU-VOID-01',
+                'stock_qty' => 6,
+                'note'      => 'Void Transaksi Kasir POS'
+            ]
+        ];
+
+        (new ProcessOlseraWebhookJob($payload))->handle();
+
+        $variant->refresh();
+        $parent->refresh();
+        $this->assertEquals(6, $variant->stok_aktual, 'Stok varian harus bertambah menjadi 6');
+        $this->assertEquals(6, $parent->stok_aktual, 'Stok induk harus ter-rollup menjadi 6');
+    }
+
+    /**
+     * Skenario 10: Ada Barang Masuk Baru dari Pembelian (Purchase Order / Restock)
+     */
+    public function test_it_handles_incoming_goods_purchase_restocking(): void
+    {
+        $product = Product::create([
+            'category_id' => $this->category->id,
+            'kode_barang' => 'PURCHASE-IN-001',
+            'nama_barang' => 'Incoming Liquid 30ml',
+            'slug'        => 'incoming-liquid-30ml',
+            'harga_jual'  => 120000,
+            'harga_pokok' => 80000,
+            'stok_aktual' => 2, // Stok menipis
+            'lead_time'   => 2,
+            'nilai_ss'    => 0,
+            'rata_penjualan' => 0
+        ]);
+
+        // Kulakan masuk 50 pcs dari supplier di Olsera Backoffice
+        $payload = [
+            'event' => 'inventory_update',
+            'data'  => [
+                'sku'       => 'PURCHASE-IN-001',
+                'stock_qty' => 52, // 2 + 50
+                'note'      => 'Penerimaan Barang PO Supplier'
+            ]
+        ];
+
+        (new ProcessOlseraWebhookJob($payload))->handle();
+
+        $product->refresh();
+        $this->assertEquals(52, $product->stok_aktual, 'Stok produk di web harus otomatis bertambah menjadi 52');
+    }
 }
