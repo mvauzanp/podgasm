@@ -64,22 +64,155 @@ class ProcessOlseraWebhookJob implements ShouldQueue
             }
         }
 
-        // 2. Tangani Pembaruan / Penambahan Produk Penuh (Product Create / Update)
-        if (isset($data['name']) && isset($data['sku'])) {
+        // 2. Tangani Event Transaksi / Pesanan Kasir POS (Order Completed / Created)
+        // 2. Tangani Event Transaksi / Pesanan Kasir POS (Order Completed / Created / Sales)
+        $items = $data['items'] ?? $this->payload['items'] ?? $data['order_items'] ?? $data['details'] ?? $data['products'] ?? $data['lines'] ?? $data['order_details'] ?? null;
+        if (!empty($items) && is_array($items) && (str_contains((string) $event, 'order') || str_contains((string) $event, 'sale') || str_contains((string) $event, 'transact') || str_contains((string) $event, 'close') || !empty($data['order_no']))) {
+            $this->deductStockFromPosOrder($items);
+            return;
+        }
+
+        // 3. Tangani Batch Item List (misal array pembaruan inventaris multi-produk)
+        if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+            foreach ($data as $subItem) {
+                $subSku = $subItem['sku'] ?? $subItem['item_sku'] ?? $subItem['kode_barang'] ?? ($subItem['id'] ? 'SKU-P-' . $subItem['id'] : null);
+                $subStock = $subItem['stock_qty'] ?? $subItem['stock'] ?? $subItem['stok_aktual'] ?? null;
+                if ($subSku && $subStock !== null) {
+                    $this->updateStockOnly((string) $subSku, (int) $subStock, $subItem);
+                }
+            }
+            return;
+        }
+
+        // 4. Tangani Pembaruan / Penambahan Produk Penuh (Product Create / Update)
+        if (isset($data['name']) && (isset($data['sku']) || isset($data['id']))) {
             $this->syncFullProduct($data);
             return;
         }
 
-        // 3. Tangani Pembaruan Stok Singkat (Stock / Inventory Update)
-        $sku = $data['sku'] ?? $data['item_sku'] ?? $data['kode_barang'] ?? null;
+        // 5. Tangani Pembaruan Stok Singkat (Stock / Inventory Update)
+        $sku = $data['sku'] ?? $data['item_sku'] ?? $data['kode_barang'] ?? ($data['id'] ? 'SKU-P-' . $data['id'] : null);
         $newStock = $data['stock_qty'] ?? $data['stock'] ?? $data['stok_aktual'] ?? null;
 
         if ($sku && $newStock !== null) {
-            $this->updateStockOnly($sku, (int) $newStock);
+            $this->updateStockOnly((string) $sku, (int) $newStock, $data);
             return;
         }
 
         Log::info('Olsera Webhook Ingestion: Payload diproses tanpa aksi spesifik produk.', ['payload' => $this->payload]);
+    }
+
+    /**
+     * Memotong stok produk & varian secara langsung saat kasir toko fisik (POS) menyelesaikan transaksi
+     */
+    protected function deductStockFromPosOrder(array $items): void
+    {
+        DB::transaction(function () use ($items) {
+            $today = now()->toDateString();
+
+            foreach ($items as $item) {
+                $sku = trim((string) ($item['sku'] ?? $item['kode_barang'] ?? $item['barcode'] ?? $item['item_sku'] ?? ''));
+                $qty = (int) ($item['qty'] ?? $item['quantity'] ?? $item['jumlah'] ?? 1);
+                $itemId = $item['product_id'] ?? $item['id'] ?? null;
+                $numericId = null;
+
+                if (preg_match('/^SKU-[PV]-(\d+)$/i', $sku, $matches)) {
+                    $numericId = (int) $matches[1];
+                } elseif (is_numeric($sku) && !empty($sku)) {
+                    $numericId = (int) $sku;
+                }
+                if (!$numericId && $itemId && is_numeric($itemId)) {
+                    $numericId = (int) $itemId;
+                }
+
+                if ($qty <= 0) {
+                    continue;
+                }
+
+                // 1. Prioritas Lookup Varian
+                $variant = null;
+                if (!empty($sku)) {
+                    $variant = ProductVariant::where('kode_barang', $sku)->lockForUpdate()->first();
+                }
+                if (!$variant && $numericId) {
+                    $variant = ProductVariant::where('kode_barang', 'SKU-V-' . $numericId)
+                        ->orWhere('kode_barang', (string) $numericId)
+                        ->orWhere('id', $numericId)
+                        ->lockForUpdate()
+                        ->first();
+                }
+                if (!$variant && !empty($item['name'])) {
+                    $variant = ProductVariant::where('nama_varian', trim($item['name']))->lockForUpdate()->first();
+                }
+
+                if ($variant) {
+                    $newStock = max(0, (int) $variant->stok_aktual - $qty);
+                    $variant->update(['stok_aktual' => $newStock]);
+
+                    $totalVarStock = ProductVariant::where('product_id', $variant->product_id)->sum('stok_aktual');
+                    Product::where('id', $variant->product_id)->update(['stok_aktual' => (int) $totalVarStock]);
+
+                    // Catat ke sales_histories source: pos untuk Safety Stock harian
+                    try {
+                        $history = \App\Models\SalesHistory::firstOrCreate(
+                            [
+                                'product_id' => $variant->product_id,
+                                'product_variant_id' => $variant->id,
+                                'date' => $today,
+                                'source' => 'pos'
+                            ],
+                            ['qty_sold' => 0]
+                        );
+                        $history->increment('qty_sold', $qty);
+                    } catch (\Exception $e) {
+                        Log::warning("Gagal mencatat sales history POS: " . $e->getMessage());
+                    }
+
+                    Log::info("Olsera POS Webhook: Berhasil memotong {$qty} unit dari Varian [{$sku}]. Sisa stok: {$newStock}.");
+                    continue;
+                }
+
+                // 2. Lookup Produk Utama
+                $product = null;
+                if (!empty($sku)) {
+                    $product = Product::where('kode_barang', $sku)->lockForUpdate()->first();
+                }
+                if (!$product && $numericId) {
+                    $product = Product::where('kode_barang', 'SKU-P-' . $numericId)
+                        ->orWhere('kode_barang', (string) $numericId)
+                        ->orWhere('id', $numericId)
+                        ->lockForUpdate()
+                        ->first();
+                }
+                if (!$product && isset($item['name'])) {
+                    $product = Product::where('nama_barang', trim($item['name']))->lockForUpdate()->first();
+                }
+
+                if ($product) {
+                    $newStock = max(0, (int) $product->stok_aktual - $qty);
+                    $product->update(['stok_aktual' => $newStock]);
+
+                    try {
+                        $history = \App\Models\SalesHistory::firstOrCreate(
+                            [
+                                'product_id' => $product->id,
+                                'product_variant_id' => null,
+                                'date' => $today,
+                                'source' => 'pos'
+                            ],
+                            ['qty_sold' => 0]
+                        );
+                        $history->increment('qty_sold', $qty);
+                    } catch (\Exception $e) {
+                        Log::warning("Gagal mencatat sales history POS: " . $e->getMessage());
+                    }
+
+                    Log::info("Olsera POS Webhook: Berhasil memotong {$qty} unit dari Produk [{$product->nama_barang}]. Sisa stok: {$newStock}.");
+                } else {
+                    Log::warning("Olsera POS Webhook: Produk [SKU: {$sku}] dari transaksi kasir tidak ditemukan di database.");
+                }
+            }
+        });
     }
 
     /**
@@ -169,29 +302,125 @@ class ProcessOlseraWebhookJob implements ShouldQueue
     /**
      * Update hanya stok pada produk atau varian
      */
-    protected function updateStockOnly(string $sku, int $newStock): void
+    protected function updateStockOnly(string $sku, int $newStock, ?array $rawItem = null): void
     {
-        DB::transaction(function () use ($sku, $newStock) {
-            // 1. Cek varian produk
-            $variant = ProductVariant::where('kode_barang', $sku)->lockForUpdate()->first();
+        DB::transaction(function () use ($sku, $newStock, $rawItem) {
+            $today = now()->toDateString();
+            $cleanSku = trim($sku);
+            $numericId = null;
+
+            // Ekstrak ID numerik jika SKU memiliki pola SKU-P-12345 atau SKU-V-12345
+            if (preg_match('/^SKU-[PV]-(\d+)$/i', $cleanSku, $matches)) {
+                $numericId = (int) $matches[1];
+            } elseif (is_numeric($cleanSku) && !empty($cleanSku)) {
+                $numericId = (int) $cleanSku;
+            }
+
+            $rawId = $rawItem['id'] ?? $rawItem['product_id'] ?? $rawItem['item_id'] ?? null;
+            if (!$numericId && $rawId && is_numeric($rawId)) {
+                $numericId = (int) $rawId;
+            }
+
+            // 1. Cek Varian Produk
+            $variant = null;
+            if (!empty($cleanSku)) {
+                $variant = ProductVariant::where('kode_barang', $cleanSku)->lockForUpdate()->first();
+            }
+            if (!$variant && $numericId) {
+                $variant = ProductVariant::where('kode_barang', 'SKU-V-' . $numericId)
+                    ->orWhere('kode_barang', (string) $numericId)
+                    ->orWhere('id', $numericId)
+                    ->lockForUpdate()
+                    ->first();
+            }
+            if (!$variant && !empty($rawItem['name'])) {
+                $variant = ProductVariant::where('nama_varian', trim($rawItem['name']))->lockForUpdate()->first();
+            }
+
             if ($variant) {
-                $variant->update(['stok_aktual' => $newStock]);
+                $oldStock = (int) $variant->stok_aktual;
+                $variant->update(['stok_aktual' => max(0, $newStock)]);
                 
                 // Update total stok pada produk induknya
                 $totalStock = ProductVariant::where('product_id', $variant->product_id)->sum('stok_aktual');
                 Product::where('id', $variant->product_id)->update(['stok_aktual' => (int) $totalStock]);
                 
-                Log::info("Olsera Webhook Queue: Sukses update stok Varian [{$sku}] menjadi {$newStock} unit.");
+                // Jika stok berkurang, catat ke sales_histories POS untuk perhitungan Safety Stock harian
+                if ($newStock < $oldStock) {
+                    $diffQty = $oldStock - $newStock;
+                    try {
+                        $history = \App\Models\SalesHistory::firstOrCreate(
+                            [
+                                'product_id' => $variant->product_id,
+                                'product_variant_id' => $variant->id,
+                                'date' => $today,
+                                'source' => 'pos'
+                            ],
+                            ['qty_sold' => 0]
+                        );
+                        $history->increment('qty_sold', $diffQty);
+                    } catch (\Exception $e) {
+                        Log::warning("Gagal mencatat sales history POS: " . $e->getMessage());
+                    }
+                }
+
+                Log::info("Olsera Webhook Queue: Sukses update stok Varian [{$cleanSku}] (ID: {$variant->id}) dari {$oldStock} menjadi {$newStock} unit. Total stok induk: {$totalStock}.");
                 return;
             }
 
-            // 2. Cek produk standar
-            $product = Product::where('kode_barang', $sku)->lockForUpdate()->first();
+            // 2. Cek Produk Standar / Utama
+            $product = null;
+            if (!empty($cleanSku)) {
+                $product = Product::where('kode_barang', $cleanSku)->lockForUpdate()->first();
+            }
+            if (!$product && $numericId) {
+                $product = Product::where('kode_barang', 'SKU-P-' . $numericId)
+                    ->orWhere('kode_barang', (string) $numericId)
+                    ->orWhere('id', $numericId)
+                    ->lockForUpdate()
+                    ->first();
+            }
+            if (!$product && !empty($rawItem['name'])) {
+                $product = Product::where('nama_barang', trim($rawItem['name']))->lockForUpdate()->first();
+            }
+
             if ($product) {
-                $product->update(['stok_aktual' => $newStock]);
-                Log::info("Olsera Webhook Queue: Sukses update stok Produk [{$sku}] menjadi {$newStock} unit.");
+                $oldStock = (int) $product->stok_aktual;
+                $product->update(['stok_aktual' => max(0, $newStock)]);
+
+                // Jika produk memiliki varian tunggal/varian tanpa stok spesifik, update varian terkait juga
+                if ($product->hasVariants()) {
+                    $firstVariant = $product->variants()->first();
+                    if ($firstVariant && $product->variants()->count() === 1) {
+                        $firstVariant->update(['stok_aktual' => max(0, $newStock)]);
+                    }
+                }
+
+                if ($newStock < $oldStock) {
+                    $diffQty = $oldStock - $newStock;
+                    try {
+                        $history = \App\Models\SalesHistory::firstOrCreate(
+                            [
+                                'product_id' => $product->id,
+                                'product_variant_id' => null,
+                                'date' => $today,
+                                'source' => 'pos'
+                            ],
+                            ['qty_sold' => 0]
+                        );
+                        $history->increment('qty_sold', $diffQty);
+                    } catch (\Exception $e) {
+                        Log::warning("Gagal mencatat sales history POS: " . $e->getMessage());
+                    }
+                }
+
+                Log::info("Olsera Webhook Queue: Sukses update stok Produk [{$product->nama_barang}] (SKU: {$cleanSku}) dari {$oldStock} menjadi {$newStock} unit.");
             } else {
-                Log::warning("Olsera Webhook Queue: SKU [{$sku}] tidak ditemukan di database Podgasm.");
+                Log::warning("Olsera Webhook Queue: SKU [{$cleanSku}] tidak ditemukan di database Podgasm.", [
+                    'cleanSku' => $cleanSku,
+                    'numericId' => $numericId,
+                    'rawItem' => $rawItem
+                ]);
             }
         });
     }

@@ -947,11 +947,17 @@
         }
 
         /* ================= BASE & RESPONSIVE STYLING FOR ALL DEVICES ================= */
-        html, body {
+        html {
             overflow-x: hidden;
             width: 100%;
             max-width: 100vw;
-            padding-top: 96px !important;
+        }
+
+        body {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+            padding-top: 68px !important;
         }
 
         .navbar-logo {
@@ -981,7 +987,7 @@
 
         @media(max-width: 991.98px) {
             body {
-                padding-top: 86px !important;
+                padding-top: 64px !important;
             }
             .surfeit-image-box {
                 height: 210px !important;
@@ -994,7 +1000,7 @@
 
         @media(max-width: 767.98px) {
             body {
-                padding-top: 84px !important;
+                padding-top: 58px !important;
                 font-size: 0.88rem;
             }
 

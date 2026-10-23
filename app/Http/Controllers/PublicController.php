@@ -313,4 +313,43 @@ class PublicController extends Controller
             'products' => $products
         ]);
     }
+
+    /**
+     * Endpoint ringan untuk sinkronisasi stok live (Smart On-Action & Tab Focus Sync)
+     */
+    public function getStock(int $id)
+    {
+        $product = Product::select('id', 'stok_aktual')
+            ->with(['variants:id,product_id,nama_varian,stok_aktual'])
+            ->find($id);
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+
+        $hasVariants = $product->variants->isNotEmpty();
+        $totalStock = $hasVariants ? (int) $product->variants->sum('stok_aktual') : (int) $product->stok_aktual;
+
+        $variantsData = $product->variants->map(function ($variant) {
+            return [
+                'id' => $variant->id,
+                'name' => $variant->nama_varian,
+                'stock' => (int) $variant->stok_aktual,
+                'is_out_of_stock' => (int) $variant->stok_aktual <= 0,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'product_id' => $product->id,
+            'has_variants' => $hasVariants,
+            'total_stock' => $totalStock,
+            'stock' => (int) $product->stok_aktual,
+            'is_out_of_stock' => $totalStock <= 0,
+            'variants' => $variantsData,
+        ]);
+    }
 }

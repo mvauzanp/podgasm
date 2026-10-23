@@ -8,6 +8,9 @@
             <p class="text-muted small mb-0">Kelola sinkronisasi otomatis katalog, stok fisik cabang, polling 5 menit, dan push transaksi penjualan Olsera.</p>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalOlseraConfig" style="font-size: 0.8rem;">
+                <i class="fas fa-sliders me-1.5"></i> Konfigurasi API &amp; Token
+            </button>
             <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm fw-semibold" id="btnTestConnection" onclick="testOlseraConnection()" style="font-size: 0.8rem;">
                 <i class="fas fa-satellite-dish me-1.5 text-info"></i> Uji Koneksi API
             </button>
@@ -29,16 +32,16 @@
 
     {{-- Status Card Banner --}}
     <div class="row g-2.5 g-md-3 mb-3">
-        <div class="col-lg-4 col-md-6 col-12">
+        <div class="col-lg-3 col-md-6 col-12">
             <div class="card border-0 shadow-sm rounded-3 p-3 h-100 {{ $isMockMode ? 'bg-warning-subtle border-start border-warning border-4' : 'bg-success-subtle border-start border-success border-4' }}">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <div class="text-uppercase fw-bold text-muted small mb-0.5" style="font-size: 0.72rem;">Status Driver Olsera</div>
-                        <h6 class="fw-bold mb-0.5 {{ $isMockMode ? 'text-warning' : 'text-success' }}" style="font-size: 1rem;">
+                        <h6 class="fw-bold mb-0.5 {{ $isMockMode ? 'text-warning' : 'text-success' }}" style="font-size: 0.95rem;">
                             {{ $isMockMode ? 'SIMULASI (Mock Mode)' : 'TERHUBUNG (Live API)' }}
                         </h6>
                         <small class="text-muted d-block" style="font-size: 0.72rem;">
-                            {{ $isMockMode ? 'Menunggu API Key live resmi.' : 'Terhubung langsung ke Olsera Cloud Server.' }}
+                            {{ $isMockMode ? 'Mode pengujian offline aktif.' : 'Terhubung ke Olsera Cloud Server.' }}
                         </small>
                     </div>
                     <div class="rounded-circle p-2.5 {{ $isMockMode ? 'bg-warning text-dark' : 'bg-success text-white' }} bg-opacity-25">
@@ -48,13 +51,38 @@
             </div>
         </div>
 
-        <div class="col-lg-4 col-md-6 col-12">
+        <div class="col-lg-3 col-md-6 col-12">
+            <div class="card border-0 shadow-sm rounded-3 p-3 h-100 bg-white border-start {{ !empty($tokenInfo['is_expired']) ? 'border-danger' : 'border-success' }} border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase fw-bold text-muted small mb-0.5" style="font-size: 0.72rem;">Status Access Token</div>
+                        <h6 class="fw-bold mb-0.5 {{ !empty($tokenInfo['is_expired']) ? 'text-danger' : 'text-success' }}" style="font-size: 0.95rem;">
+                            @if(!empty($tokenInfo['is_expired']))
+                                <i class="fas fa-triangle-exclamation me-1"></i> Kadaluwarsa
+                            @elseif(!empty($tokenInfo['has_token']))
+                                <i class="fas fa-check-circle me-1"></i> Token Aktif
+                            @else
+                                <i class="fas fa-circle-question me-1"></i> Belum Diatur
+                            @endif
+                        </h6>
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">
+                            {{ $tokenInfo['time_remaining'] ?? 'Periksa kredensial' }}
+                        </small>
+                    </div>
+                    <div class="rounded-circle p-2.5 {{ !empty($tokenInfo['is_expired']) ? 'bg-danger text-white' : 'bg-success text-white' }} bg-opacity-25">
+                        <i class="fas fa-key fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 col-12">
             <div class="card border-0 shadow-sm rounded-3 p-3 h-100 bg-white border-start border-primary border-4">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <div class="text-uppercase fw-bold text-muted small mb-0.5" style="font-size: 0.72rem;">Terakhir Sinkronisasi</div>
-                        <h6 class="fw-bold mb-0.5 text-dark" style="font-size: 1rem;">{{ $lastSync }}</h6>
-                        <small class="text-muted d-block" style="font-size: 0.72rem;">Otomatis Smart Delta Polling tiap 5 menit</small>
+                        <h6 class="fw-bold mb-0.5 text-dark" style="font-size: 0.95rem;">{{ $lastSync }}</h6>
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">Smart Delta Polling tiap 5 menit</small>
                     </div>
                     <div class="rounded-circle p-2.5 bg-primary bg-opacity-10 text-primary">
                         <i class="fas fa-clock fs-5"></i>
@@ -63,16 +91,16 @@
             </div>
         </div>
 
-        <div class="col-lg-4 col-md-12 col-12">
+        <div class="col-lg-3 col-md-6 col-12">
             <div class="card border-0 shadow-sm rounded-3 p-3 h-100 bg-white border-start border-info border-4">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-uppercase fw-bold text-muted small mb-0.5" style="font-size: 0.72rem;">Fitur Tambahan Aktif</div>
-                        <h6 class="fw-bold mb-0.5 text-dark" style="font-size: 1rem;">Smart Delta &amp; Rate-Limit Safety</h6>
-                        <small class="text-muted d-block" style="font-size: 0.72rem;">Delta query + 429 auto exponential backoff</small>
+                        <div class="text-uppercase fw-bold text-muted small mb-0.5" style="font-size: 0.72rem;">Sinkronisasi 2 Arah</div>
+                        <h6 class="fw-bold mb-0.5 text-dark" style="font-size: 0.95rem;">POS &harr; Web Real-Time</h6>
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">Otomatis masuk Laporan Penutupan POS</small>
                     </div>
                     <div class="rounded-circle p-2.5 bg-info bg-opacity-10 text-info">
-                        <i class="fas fa-bolt fs-5"></i>
+                        <i class="fas fa-arrows-split-up-and-left fs-5"></i>
                     </div>
                 </div>
             </div>
@@ -127,6 +155,97 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    {{-- KOTAK INFORMASI SINKRONISASI 2 ARAH & LAPORAN PENUTUPAN PENJUALAN --}}
+    <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white border-start border-primary border-4">
+        <div class="card-body p-3">
+            <h6 class="fw-bold text-dark mb-2 small"><i class="fas fa-repeat text-primary me-2"></i> Cara Kerja Sinkronisasi Dua Arah (Omnichannel):</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="p-2.5 bg-light rounded-3 h-100 border border-light">
+                        <div class="fw-bold text-primary small mb-1"><i class="fas fa-arrow-down-long me-1"></i> 1. Penjualan Kasir POS Olsera &rarr; Stok Web</div>
+                        <p class="text-secondary small mb-0" style="font-size: 0.76rem;">
+                            Ketika kasir toko fisik menyelesaikan transaksi di aplikasi Olsera POS, webhook real-time dikirimkan ke <code>/api/webhook/olsera</code>. Stok varian &amp; produk di website langsung terpotong seketika secara atomik tanpa keterlambatan.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-2.5 bg-light rounded-3 h-100 border border-light">
+                        <div class="fw-bold text-success small mb-1"><i class="fas fa-arrow-up-long me-1"></i> 2. Penjualan Website &rarr; Olsera POS (Laporan Penutupan)</div>
+                        <p class="text-secondary small mb-0" style="font-size: 0.76rem;">
+                            Ketika pesanan e-commerce terbayar di web, sistem otomatis membuat transaksi pesanan resmi di Olsera POS (Status Selesai/Z). Stok kasir Olsera terpotong dan total omset otomatis tercatat dalam <strong>Laporan Penjualan Harian &amp; Penutupan Penjualan Kasir POS</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL KONFIGURASI KREDENSIAL OLSERA POS --}}
+    <div class="modal fade" id="modalOlseraConfig" tabindex="-1" aria-labelledby="modalOlseraConfigLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow rounded-4">
+                <form action="{{ route('admin.olsera.update-credentials') }}" method="POST">
+                    @csrf
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold" id="modalOlseraConfigLabel">
+                            <i class="fas fa-sliders text-primary me-2"></i> Konfigurasi Kredensial Olsera POS API
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <div class="alert alert-info py-2 px-3 small mb-3">
+                            <i class="fas fa-info-circle me-1.5"></i>
+                            Kredensial disimpan secara persisten di sistem. Perubahan akan langsung aktif untuk sinkronisasi stok dan penerimaan webhook tanpa merestart server.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">App ID (Client ID)</label>
+                                <input type="text" name="app_id" class="form-control form-control-sm font-monospace" value="{{ $credentials['app_id'] ?? '' }}" placeholder="Contoh: GxRcmFTphzN3LBLXhhvw">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Secret Key</label>
+                                <input type="password" name="secret_key" class="form-control form-control-sm font-monospace" value="{{ $credentials['secret_key'] ?? '' }}" placeholder="Masukkan secret key">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Default Outlet ID (Cabang Utama/Pusat)</label>
+                                <input type="text" name="default_outlet_id" class="form-control form-control-sm font-monospace" value="{{ $credentials['default_outlet_id'] ?? '103944' }}" placeholder="Contoh: 103944">
+                                <small class="text-muted d-block" style="font-size: 0.72rem;">ID outlet Olsera Podgasm Kertajaya (Pusat): <code>103944</code></small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Mode Operasional</label>
+                                <div class="form-check form-switch mt-1">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="mockModeSwitch" name="mock_mode" value="1" {{ !empty($credentials['mock_mode']) ? 'checked' : '' }}>
+                                    <label class="form-check-label small" for="mockModeSwitch">
+                                        Gunakan Driver Simulasi (Mock Mode)
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block" style="font-size: 0.72rem;">Matikan switch ini untuk menghubungkan langsung ke API Olsera Cloud.</small>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label small fw-semibold mb-0">Access Token (Bearer JWT)</label>
+                                    <button type="button" class="btn btn-outline-info btn-xs py-0.5 px-2 rounded-pill fw-semibold" id="btnRefreshToken" onclick="refreshOlseraToken()" style="font-size: 0.75rem;">
+                                        <i class="fas fa-rotate me-1"></i> Perpanjang Token Otomatis
+                                    </button>
+                                </div>
+                                <textarea name="access_token" rows="3" class="form-control form-control-sm font-monospace small" placeholder="eyJ0eXAiOiJKV1Qi... (Tempelkan token dari Olsera Developer Console)">{{ $credentials['access_token'] ?? '' }}</textarea>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">
+                                    Masa aktif token: <strong>{{ $tokenInfo['expires_at'] ?? 'Belum ada' }}</strong> ({{ $tokenInfo['time_remaining'] ?? '-' }}).
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-semibold">
+                            <i class="fas fa-floppy-disk me-1.5"></i> Simpan Konfigurasi
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -254,6 +373,55 @@
 
 @push('scripts')
 <script>
+function refreshOlseraToken() {
+    const btn = document.getElementById('btnRefreshToken');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Merefresh...';
+    btn.disabled = true;
+
+    fetch("{{ route('admin.olsera.refresh-token') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": "{{ csrf_token() }}",
+            "Accept": "application/json"
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Token Berhasil Diperbarui',
+                text: data.message,
+                confirmButtonColor: '#09afb9'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Refresh Token Belum Berhasil',
+                text: data.message,
+                confirmButtonColor: '#f59e0b'
+            });
+        }
+    })
+    .catch(err => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        Swal.fire({
+            icon: 'error',
+            title: 'Kesalahan Sistem',
+            text: 'Gagal menghubungi server: ' + err.message,
+            confirmButtonColor: '#ef4444'
+        });
+    });
+}
+
 function testOlseraConnection() {
     const btn = document.getElementById('btnTestConnection');
     const originalHtml = btn.innerHTML;

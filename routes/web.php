@@ -29,6 +29,7 @@ use App\Http\Controllers\Branch\BranchController;
 
 Route::get('/', [PublicController::class, 'index'])->name('home');
 Route::get('/category/{slug}', [PublicController::class, 'categoryIndex'])->name('public.category');
+Route::get('/product/{id}/stock', [PublicController::class, 'getStock'])->whereNumber('id')->middleware('throttle:120,1')->name('public.product.stock');
 Route::get('/product/{slug}', [PublicController::class, 'show'])->name('public.product.show'); // ✅ PERBAIKAN #6
 Route::get('/search', [PublicController::class, 'search'])->middleware('throttle:60,1')->name('public.search'); // ✅ PERBAIKAN #6
 Route::get('/search/live', [PublicController::class, 'liveSearch'])->middleware('throttle:60,1')->name('public.search.live');
@@ -204,6 +205,8 @@ Route::middleware(['auth', 'role:admin'])
             Route::get('/olsera', 'index')->name('olsera.index');
             Route::post('/olsera/sync', 'sync')->name('olsera.sync');
             Route::post('/olsera/test-connection', 'testConnection')->name('olsera.test-connection');
+            Route::post('/olsera/update-credentials', 'updateCredentials')->name('olsera.update-credentials');
+            Route::post('/olsera/refresh-token', 'refreshToken')->name('olsera.refresh-token');
         });
 
         // ✅ MONITORING BACKGROUND QUEUE & FAILED JOBS
@@ -222,6 +225,14 @@ Route::middleware(['auth', 'role:admin'])
 Route::match(['get', 'post'], '/api/olsera/webhook', [\App\Http\Controllers\OlseraWebhookController::class, 'handle'])
     ->middleware('olsera.webhook')
     ->name('api.olsera.webhook');
+
+Route::match(['get', 'post'], '/api/webhook/olsera', [\App\Http\Controllers\OlseraWebhookController::class, 'handle'])
+    ->middleware('olsera.webhook')
+    ->name('api.webhook.olsera');
+
+Route::match(['get', 'post'], '/webhook/olsera', [\App\Http\Controllers\OlseraWebhookController::class, 'handle'])
+    ->middleware('olsera.webhook')
+    ->name('webhook.olsera');
 
 /*
 |--------------------------------------------------------------------------

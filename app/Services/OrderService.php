@@ -209,11 +209,16 @@ class OrderService
                 $order->user->notify(new \App\Notifications\OrderStatusNotification($order, 'Pembayaran untuk pesanan Anda telah berhasil dikonfirmasi dan pesanan sedang diproses.'));
             }
 
-            // Integrasi Olsera POS: Push Sales Order secara asynchronous via Queue Job
+            // Integrasi Olsera POS: Push Sales Order secara instan (real-time sync) & fallback ke queue jika jaringan sibuk
             try {
-                \App\Jobs\PushSalesOrderToOlseraJob::dispatch($order->id);
-            } catch (\Exception $e) {
-                Log::warning("Olsera Queue Dispatch failed for Order {$order->invoice_number}: " . $e->getMessage());
+                \App\Jobs\PushSalesOrderToOlseraJob::dispatchSync($order->id);
+            } catch (\Throwable $e) {
+                Log::warning("Olsera instant push failed for Order {$order->invoice_number}: " . $e->getMessage() . ". Mengalihkan ke queue retry.");
+                try {
+                    \App\Jobs\PushSalesOrderToOlseraJob::dispatch($order->id);
+                } catch (\Throwable $qE) {
+                    Log::error("Olsera queue dispatch failed: " . $qE->getMessage());
+                }
             }
 
             return true;

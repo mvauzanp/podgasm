@@ -60,7 +60,7 @@ return [
         'app_id' => env('OLSERA_APP_ID'),
         'secret_key' => env('OLSERA_SECRET_KEY'),
         'access_token' => env('OLSERA_ACCESS_TOKEN'),
-        'default_outlet_id' => env('OLSERA_DEFAULT_OUTLET_ID', '1'),
+        'default_outlet_id' => env('OLSERA_DEFAULT_OUTLET_ID', '103944'),
         'webhook_secret' => env('OLSERA_WEBHOOK_SECRET'),
         'mock_mode' => env('OLSERA_MOCK_MODE', true), // Default to true while waiting for credentials
     ],

@@ -25,15 +25,101 @@ class OlseraApiService
 
     public function __construct()
     {
-        $this->baseUrl = rtrim(config('services.olsera.base_url', 'https://api-open.olsera.co.id/api/open-api/v1/id'), '/');
-        $this->appId = config('services.olsera.app_id');
-        $this->secretKey = config('services.olsera.secret_key');
-        $this->accessToken = config('services.olsera.access_token');
-        $this->defaultOutletId = (string) config('services.olsera.default_outlet_id', '1');
-        
+        $settings = $this->loadPersistentSettings();
+
+        $this->baseUrl = rtrim($settings['base_url'] ?? config('services.olsera.base_url', 'https://api-open.olsera.co.id/api/open-api/v1/id'), '/');
+        $this->appId = $settings['app_id'] ?? config('services.olsera.app_id');
+        $this->secretKey = $settings['secret_key'] ?? config('services.olsera.secret_key');
+        $this->accessToken = $settings['access_token'] ?? config('services.olsera.access_token');
+        $this->defaultOutletId = (string) ($settings['default_outlet_id'] ?? config('services.olsera.default_outlet_id', '103944'));
+
         // Mock mode aktif jika diset eksplisit ATAU kredensial appId/secret/token kosong semua
-        $this->mockMode = (bool) config('services.olsera.mock_mode', false) 
-            || (empty($this->appId) && empty($this->accessToken));
+        $configuredMock = isset($settings['mock_mode']) ? (bool) $settings['mock_mode'] : (bool) config('services.olsera.mock_mode', false);
+        $this->mockMode = $configuredMock || (empty($this->appId) && empty($this->accessToken));
+    }
+
+    /**
+     * Muat pengaturan persisten dari storage/app/settings.json
+     */
+    public function loadPersistentSettings(): array
+    {
+        $settingsFile = storage_path('app/settings.json');
+        if (file_exists($settingsFile)) {
+            $json = json_decode(file_get_contents($settingsFile), true) ?: [];
+            return $json['olsera'] ?? [];
+        }
+        return [];
+    }
+
+    /**
+     * Simpan pengaturan persisten ke storage/app/settings.json
+     */
+    public function savePersistentSettings(array $values): void
+    {
+        $settingsFile = storage_path('app/settings.json');
+        $settings = [];
+        if (file_exists($settingsFile)) {
+            $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
+        }
+
+        $settings['olsera'] = array_merge($settings['olsera'] ?? [], $values);
+        @file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        // Perbarui runtime property
+        if (isset($values['app_id'])) $this->appId = $values['app_id'];
+        if (isset($values['secret_key'])) $this->secretKey = $values['secret_key'];
+        if (isset($values['access_token'])) $this->accessToken = $values['access_token'];
+        if (isset($values['default_outlet_id'])) $this->defaultOutletId = (string) $values['default_outlet_id'];
+        if (isset($values['mock_mode'])) $this->mockMode = (bool) $values['mock_mode'];
+    }
+
+    /**
+     * Dapatkan informasi detail status token (JWT decoding & masa berlaku)
+     */
+    public function getTokenInfo(): array
+    {
+        $token = $this->accessToken ?: config('services.olsera.access_token');
+        if (empty($token) || $this->mockMode) {
+            return [
+                'has_token'      => !empty($token),
+                'is_expired'     => false,
+                'expires_at'     => $this->mockMode ? 'Simulasi (Tanpa Kadaluwarsa)' : 'Belum Ada Token',
+                'time_remaining' => $this->mockMode ? 'Mock Mode' : 'Token belum diatur',
+                'app_id'         => $this->appId,
+                'store_url_id'   => null,
+            ];
+        }
+
+        try {
+            $parts = explode('.', $token);
+            if (count($parts) === 3) {
+                $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+                if (is_array($payload) && isset($payload['exp'])) {
+                    $exp = (int) $payload['exp'];
+                    $expCarbon = \Carbon\Carbon::createFromTimestamp($exp, 'Asia/Jakarta');
+                    $isExpired = now()->timestamp >= $exp;
+                    return [
+                        'has_token'      => true,
+                        'is_expired'     => $isExpired,
+                        'expires_at'     => $expCarbon->format('Y-m-d H:i:s') . ' WIB',
+                        'time_remaining' => $isExpired ? 'Kadaluwarsa (' . $expCarbon->diffForHumans() . ')' : $expCarbon->diffForHumans(),
+                        'app_id'         => $payload['app_id'] ?? $this->appId,
+                        'store_url_id'   => $payload['store_url_id'] ?? null,
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Olsera getTokenInfo decode error: ' . $e->getMessage());
+        }
+
+        return [
+            'has_token'      => true,
+            'is_expired'     => false,
+            'expires_at'     => 'Token Non-JWT / Kustom',
+            'time_remaining' => 'Format Opaque Token',
+            'app_id'         => $this->appId,
+            'store_url_id'   => null,
+        ];
     }
 
     public function isMockMode(): bool
@@ -65,39 +151,65 @@ class OlseraApiService
             $this->invalidateToken();
         }
 
-        // 1. Cek token yang tersimpan di Cache aplikasi
+        // 1. Cek token yang tersimpan di Cache aplikasi atau persistent settings
         $cachedToken = Cache::get('olsera_access_token') ?: Cache::get('olsera_api_access_token');
         if (!$forceRefresh && !empty($cachedToken)) {
             $this->accessToken = $cachedToken;
             return $cachedToken;
         }
 
-        // 2. Jika ada App ID & Secret Key, request token baru dari Olsera Open API
-        if (!empty($this->appId) && !empty($this->secretKey)) {
+        $persistent = $this->loadPersistentSettings();
+        $savedToken = $persistent['access_token'] ?? null;
+        if (!$forceRefresh && !empty($savedToken)) {
+            // Cek apakah token belum expired
+            $parts = explode('.', $savedToken);
+            if (count($parts) === 3) {
+                $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+                if (is_array($payload) && isset($payload['exp']) && now()->timestamp < (int) $payload['exp']) {
+                    $this->accessToken = $savedToken;
+                    Cache::put('olsera_access_token', $savedToken, (int)$payload['exp'] - now()->timestamp);
+                    return $savedToken;
+                }
+            }
+        }
+
+        // 2. Request token baru dari Olsera Open API
+        if (!empty($this->appId)) {
             try {
                 $response = null;
-                $storedRefreshToken = Cache::get('olsera_refresh_token');
+                $storedRefreshToken = Cache::get('olsera_refresh_token') ?: ($persistent['refresh_token'] ?? null);
 
-                // A. Strategi 1: Gunakan refresh_token jika tersedia di cache (Standar Resmi Olsera)
+                // A. Strategi 1: refresh_token (Standar Resmi Olsera)
                 if (!empty($storedRefreshToken)) {
-                    $response = Http::timeout(15)->post("{$this->baseUrl}/token", [
-                        'app_id'        => $this->appId,
-                        'secret_key'    => $this->secretKey,
+                    $response = Http::asForm()->timeout(15)->post("{$this->baseUrl}/token", [
                         'grant_type'    => 'refresh_token',
                         'refresh_token' => $storedRefreshToken,
                     ]);
+                    if (!$response->successful() || $response->status() === 406) {
+                        $response = Http::timeout(15)->post("{$this->baseUrl}/token", [
+                            'grant_type'    => 'refresh_token',
+                            'refresh_token' => $storedRefreshToken,
+                        ]);
+                    }
                 }
 
-                // B. Strategi 2: Fallback ke secret_key jika refresh_token belum ada atau ditolak
-                if (!$response || !$response->successful()) {
-                    $response = Http::timeout(15)->post("{$this->baseUrl}/token", [
+                // B. Strategi 2: secret_key jika refresh_token gagal / belum ada
+                if ((!$response || !$response->successful()) && !empty($this->secretKey)) {
+                    $response = Http::asForm()->timeout(15)->post("{$this->baseUrl}/token", [
                         'app_id'     => $this->appId,
                         'secret_key' => $this->secretKey,
                         'grant_type' => 'secret_key',
                     ]);
+                    if (!$response->successful() || $response->status() === 406) {
+                        $response = Http::timeout(15)->post("{$this->baseUrl}/token", [
+                            'app_id'     => $this->appId,
+                            'secret_key' => $this->secretKey,
+                            'grant_type' => 'secret_key',
+                        ]);
+                    }
                 }
 
-                if ($response->successful()) {
+                if ($response && $response->successful()) {
                     $json = $response->json();
                     $token = $json['access_token'] ?? null;
                     $newRefreshToken = $json['refresh_token'] ?? null;
@@ -105,23 +217,28 @@ class OlseraApiService
                     $refreshExpiresIn = (int) ($json['expires_refresh_token'] ?? (30 * 86400));
 
                     if ($token) {
-                        // Cache access token dengan safety buffer 5 menit
                         $ttl = max(60, $expiresIn - 300);
                         Cache::put('olsera_access_token', $token, $ttl);
                         Cache::put('olsera_api_access_token', $token, $ttl);
 
-                        // Simpan refresh_token baru untuk perpanjangan berkala berikutnya (30 hari)
                         if ($newRefreshToken) {
                             Cache::put('olsera_refresh_token', $newRefreshToken, max(3600, $refreshExpiresIn - 3600));
                         }
 
+                        $this->savePersistentSettings([
+                            'access_token'  => $token,
+                            'refresh_token' => $newRefreshToken ?: $storedRefreshToken,
+                        ]);
+
                         $this->accessToken = $token;
-                        Log::info("✅ Olsera API: Self-Healing Token berhasil! Access Token baru didapatkan & disimpan ke cache (TTL: {$ttl}s).");
+                        Log::info("✅ Olsera API: Token berhasil diperbarui & disimpan (TTL: {$ttl}s).");
                         return $token;
                     }
                 }
 
-                Log::error("❌ Olsera Auto Token Generation Failed [{$response->status()}]: " . $response->body());
+                if ($response) {
+                    Log::error("❌ Olsera Auto Token Generation Failed [{$response->status()}]: " . $response->body());
+                }
             } catch (\Exception $e) {
                 Log::error("❌ Olsera Auto Token Generation Exception: " . $e->getMessage());
             }
@@ -406,6 +523,12 @@ class OlseraApiService
             'per_page' => $limit,
         ];
 
+        // 🟢 FILTER OUTLET RESMI (Mencegah salah ambil stok cabang / multi-outlet mismatch)
+        $targetOutletId = $outletId ?: $this->defaultOutletId;
+        if (!empty($targetOutletId)) {
+            $queryParams['outlet_id'] = $targetOutletId;
+        }
+
         // 🟢 1. SMART POLLING (DELTA SYNC): Mengirim parameter filter perubahan sejak sinkronisasi terakhir
         if (!empty($updatedSince)) {
             $queryParams['updated_at_min'] = $updatedSince;
@@ -527,6 +650,10 @@ class OlseraApiService
      */
     public function syncCatalogAndStock(?string $outletId = null, bool $forceFullSync = false, int $maxPages = 50): array
     {
+        // Proteksi batas waktu eksekusi & alokasi memori untuk shared hosting
+        @set_time_limit(300);
+        @ini_set('memory_limit', '256M');
+
         $syncedCount = 0;
         $updatedStockCount = 0;
 
@@ -559,11 +686,22 @@ class OlseraApiService
         $syncStartTime = now()->timezone('Asia/Jakarta')->format('Y-m-d H:i:s');
         $modeDesc = $lastSyncTimestamp ? "Smart Polling (Delta sejak {$lastSyncTimestamp})" : "Full Sync";
 
+        $startTime = microtime(true);
+        $maxSafeExecutionSeconds = 30; // Batas aman hosting agar Nginx tidak 504 Gateway Timeout
+        $timeLimitReached = false;
+
         try {
             $page = 1;
             $hasMore = true;
 
             while ($hasMore && $page <= $maxPages) {
+                // Cek batas aman waktu eksekusi agar tidak terkena Nginx 504 Gateway Timeout
+                if ((microtime(true) - $startTime) > $maxSafeExecutionSeconds) {
+                    Log::warning("Sinkronisasi Olsera dijeda pada halaman {$page} ({$maxSafeExecutionSeconds} detik) demi keamanan Nginx. Data yang sudah diproses tetap tersimpan.");
+                    $timeLimitReached = true;
+                    break;
+                }
+
                 // Tarik data dengan parameter delta timestamp
                 $result = $this->fetchProductsFromOlsera($page, 50, $outletId, $lastSyncTimestamp);
                 if (!$result['success']) {
@@ -584,101 +722,152 @@ class OlseraApiService
                 }
 
                 foreach ($result['data'] as $item) {
-                    $categoryName = trim($item['category_name'] ?: 'Umum');
-                    $category = Category::firstOrCreate(
-                        ['nama_kategori' => $categoryName],
-                        ['slug' => Str::slug($categoryName)]
-                    );
+                    try {
+                        $categoryName = trim($item['category_name'] ?: 'Umum');
+                        $category = Category::firstOrCreate(
+                            ['nama_kategori' => $categoryName],
+                            ['slug' => Str::slug($categoryName)]
+                        );
 
-                    $product = Product::where('kode_barang', $item['sku'])
-                        ->orWhere('nama_barang', $item['name'])
-                        ->first();
+                        $rawSku = isset($item['sku']) ? trim((string)$item['sku']) : '';
+                        $pSku = ($rawSku !== '') ? $rawSku : null;
+                        $pName = trim((string)($item['name'] ?? ''));
 
-                    $hasVariants = !empty($item['variants']);
-                    $initialStock = $hasVariants ? (int) collect($item['variants'])->sum('stock') : (int) ($item['stock'] ?? 0);
-
-                    if (!$product) {
-                        $product = Product::create([
-                            'nama_barang' => $item['name'],
-                            'slug' => Str::slug($item['name']) . '-' . Str::random(4),
-                            'category_id' => $category->id,
-                            'kode_barang' => $item['sku'],
-                            'description' => $item['description'] ?? '',
-                            'harga_jual' => (float) ($item['price'] ?? 0),
-                            'harga_pokok' => (float) ($item['cost_price'] ?? 0),
-                            'weight' => !empty($item['weight']) ? (int) $item['weight'] : null,
-                            'stok_aktual' => $initialStock,
-                        ]);
-                        $syncedCount++;
-                    } else {
-                        $product->update([
-                            'category_id' => $category->id,
-                            'harga_jual' => (float) ($item['price'] ?? $product->harga_jual),
-                            'harga_pokok' => (float) ($item['cost_price'] ?? $product->harga_pokok),
-                            'weight' => !empty($item['weight']) ? (int) $item['weight'] : $product->weight,
-                            'stok_aktual' => $initialStock,
-                        ]);
-                        $updatedStockCount++;
-                    }
-
-                    // Download & optimasi gambar utama jika tersedia dari Olsera dan belum ada di lokal
-                    $remoteImageUrl = $item['photo_md'] ?? $item['photo_url'] ?? $item['photo'] ?? $item['image_url'] ?? $item['image'] ?? null;
-                    if (!empty($remoteImageUrl) && !str_contains($remoteImageUrl, 'no_data_item.png') && (empty($product->gambar) || $forceFullSync)) {
-                        try {
-                            $optimizedWebp = $this->optimizeAndStoreRemoteImage($remoteImageUrl, 'products', 800, 80);
-                            if ($optimizedWebp) {
-                                $product->update(['gambar' => $optimizedWebp]);
-                            } elseif (str_starts_with($remoteImageUrl, 'http')) {
-                                $product->update(['gambar' => $remoteImageUrl]);
-                            }
-                        } catch (\Exception $imgErr) {
-                            Log::warning("Failed optimizing image for {$product->nama_barang}: " . $imgErr->getMessage());
-                            if (str_starts_with($remoteImageUrl, 'http')) {
-                                $product->update(['gambar' => $remoteImageUrl]);
-                            }
+                        // Defensive Lookup Product: Prioritaskan SKU unik, termasuk soft-deleted
+                        $product = null;
+                        if ($pSku) {
+                            $product = Product::withTrashed()->where('kode_barang', $pSku)->first();
                         }
-                    }
+                        if (!$product && $pName) {
+                            $product = Product::withTrashed()->where('nama_barang', $pName)->first();
+                        }
 
-                    // Sinkronisasi varian (termasuk gambar varian & stok masing-masing)
-                    if ($hasVariants) {
-                        $totalVariantStock = 0;
-                        foreach ($item['variants'] as $vItem) {
-                            $vStock = (int) ($vItem['stock'] ?? $vItem['stock_qty'] ?? 0);
-                            $totalVariantStock += $vStock;
+                        if ($product && $product->trashed()) {
+                            $product->restore();
+                        }
 
-                            $variant = ProductVariant::firstOrNew([
-                                'product_id' => $product->id,
-                                'nama_varian' => $vItem['name'],
+                        $hasVariants = !empty($item['variants']);
+                        $initialStock = $hasVariants ? (int) collect($item['variants'])->sum('stock') : (int) ($item['stock'] ?? 0);
+
+                        // Ambil URL gambar resmi dari Cloudfront CDN Olsera
+                        $remoteImageUrl = $item['photo_url'] ?? $item['photo_md'] ?? $item['photo'] ?? $item['image_url'] ?? $item['image'] ?? null;
+                        $hasValidRemoteImage = !empty($remoteImageUrl) && !str_contains($remoteImageUrl, 'no_data_item.png');
+
+                        if (!$product) {
+                            // Pastikan slug benar-benar unik
+                            $baseSlug = Str::slug($item['name'] ?: 'produk') . '-' . Str::random(5);
+                            while (Product::withTrashed()->where('slug', $baseSlug)->exists()) {
+                                $baseSlug = Str::slug($item['name'] ?: 'produk') . '-' . Str::random(6);
+                            }
+
+                            $product = Product::create([
+                                'nama_barang' => $item['name'] ?: 'Produk Olsera',
+                                'slug' => $baseSlug,
+                                'category_id' => $category->id,
+                                'kode_barang' => $pSku,
+                                'description' => $item['description'] ?? '',
+                                'harga_jual' => (float) ($item['price'] ?? 0),
+                                'harga_pokok' => (float) ($item['cost_price'] ?? 0),
+                                'weight' => !empty($item['weight']) ? (int) $item['weight'] : null,
+                                'stok_aktual' => $initialStock,
+                                'gambar' => $hasValidRemoteImage ? $remoteImageUrl : null,
                             ]);
+                            $syncedCount++;
+                        } else {
+                            $updatePayload = [
+                                'category_id' => $category->id,
+                                'harga_jual' => (float) ($item['price'] ?? $product->harga_jual),
+                                'harga_pokok' => (float) ($item['cost_price'] ?? $product->harga_pokok),
+                                'weight' => !empty($item['weight']) ? (int) $item['weight'] : $product->weight,
+                                'stok_aktual' => $initialStock,
+                            ];
+                            if ($pSku && $pSku !== $product->kode_barang) {
+                                // Hanya update kode_barang jika tidak dipakai produk lain
+                                $skuInUse = Product::withTrashed()->where('kode_barang', $pSku)->where('id', '!=', $product->id)->exists();
+                                if (!$skuInUse) {
+                                    $updatePayload['kode_barang'] = $pSku;
+                                }
+                            }
+                            // Selalu perbarui URL gambar dengan CDN Olsera jika gambar saat ini belum CDN / masih path lokal lama / saat full sync
+                            if ($hasValidRemoteImage && (empty($product->gambar) || !str_starts_with($product->gambar, 'http') || $forceFullSync)) {
+                                $updatePayload['gambar'] = $remoteImageUrl;
+                            }
+                            $product->update($updatePayload);
+                            $updatedStockCount++;
+                        }
 
-                            // Download & simpan gambar varian jika belum ada di lokal
-                            $vPhotoUrl = $vItem['photo_md'] ?? $vItem['photo_url'] ?? $vItem['photo'] ?? $vItem['image_url'] ?? $vItem['image'] ?? null;
-                            if (!empty($vPhotoUrl) && !str_contains($vPhotoUrl, 'no_data_item.png') && (empty($variant->gambar) || $forceFullSync)) {
+                        // Sinkronisasi varian (termasuk gambar varian & stok masing-masing)
+                        if ($hasVariants) {
+                            $totalVariantStock = 0;
+                            foreach ($item['variants'] as $vItem) {
                                 try {
-                                    $vOptimizedWebp = $this->optimizeAndStoreRemoteImage($vPhotoUrl, 'products/variants', 800, 80);
-                                    if ($vOptimizedWebp) {
-                                        $variant->gambar = $vOptimizedWebp;
-                                    } elseif (str_starts_with($vPhotoUrl, 'http')) {
-                                        $variant->gambar = $vPhotoUrl;
+                                    $vStock = (int) ($vItem['stock'] ?? $vItem['stock_qty'] ?? 0);
+                                    $totalVariantStock += $vStock;
+
+                                    $rawVSku = isset($vItem['sku']) ? trim((string)$vItem['sku']) : '';
+                                    $vSku = ($rawVSku !== '') ? $rawVSku : null;
+                                    $vName = trim((string)($vItem['name'] ?? ''));
+
+                                    // Defensive lookup varian:
+                                    // 1. Prioritaskan SKU unik (karena kode_barang unik di tabel)
+                                    $variant = null;
+                                    if ($vSku) {
+                                        $variant = ProductVariant::withTrashed()->where('kode_barang', $vSku)->first();
                                     }
-                                } catch (\Exception $vImgErr) {
-                                    Log::warning("Failed optimizing variant image for {$vItem['name']}: " . $vImgErr->getMessage());
-                                    if (str_starts_with($vPhotoUrl, 'http')) {
-                                        $variant->gambar = $vPhotoUrl;
+
+                                    // 2. Fallback ke product_id + nama_varian jika SKU belum ada
+                                    if (!$variant && $vName) {
+                                        $variant = ProductVariant::withTrashed()
+                                            ->where('product_id', $product->id)
+                                            ->where('nama_varian', $vName)
+                                            ->first();
                                     }
+
+                                    // 3. Buat baru jika belum ada, atau pulihkan jika statusnya soft-deleted
+                                    if (!$variant) {
+                                        $variant = new ProductVariant();
+                                    } elseif ($variant->trashed()) {
+                                        $variant->restore();
+                                    }
+
+                                    $variant->product_id = $product->id;
+                                    $variant->nama_varian = $vName ?: 'Standard';
+                                    $variant->kode_barang = $vSku;
+
+                                    // Simpan URL gambar varian langsung (CDN Olsera)
+                                    $vPhotoUrl = $vItem['photo_url'] ?? $vItem['photo_md'] ?? $vItem['photo'] ?? $vItem['image_url'] ?? $vItem['image'] ?? null;
+                                    if (!empty($vPhotoUrl) && !str_contains($vPhotoUrl, 'no_data_item.png')) {
+                                        if (empty($variant->gambar) || !str_starts_with($variant->gambar, 'http') || $forceFullSync) {
+                                            $variant->gambar = $vPhotoUrl;
+                                        }
+                                    }
+
+                                    $variant->harga_jual = (float) ($vItem['price'] ?? $vItem['sell_price_pos'] ?? $product->harga_jual);
+                                    $variant->harga_pokok = (float) ($vItem['cost_price'] ?? $vItem['buy_price'] ?? $product->harga_pokok);
+                                    $variant->weight = !empty($vItem['weight']) ? (int) $vItem['weight'] : (!empty($item['weight']) ? (int) $item['weight'] : $variant->weight);
+                                    $variant->stok_aktual = $vStock;
+
+                                    try {
+                                        $variant->save();
+                                    } catch (\Illuminate\Database\QueryException $qe) {
+                                        // Jika tetap terjadi tabrakan unik SKU (misal data kotor dari POS), tambahkan suffix id unik
+                                        if ($qe->getCode() == 23000 || str_contains($qe->getMessage(), 'Duplicate entry')) {
+                                            $variant->kode_barang = $vSku ? ($vSku . '-' . Str::random(4)) : null;
+                                            $variant->save();
+                                        } else {
+                                            throw $qe;
+                                        }
+                                    }
+                                } catch (\Throwable $variantErr) {
+                                    Log::error("Olsera sync variant error [Product: {$product->nama_barang}]: " . $variantErr->getMessage());
                                 }
                             }
 
-                            $variant->kode_barang = $vItem['sku'] ?? null;
-                            $variant->harga_jual = (float) ($vItem['price'] ?? $vItem['sell_price_pos'] ?? $product->harga_jual);
-                            $variant->harga_pokok = (float) ($vItem['cost_price'] ?? $vItem['buy_price'] ?? $product->harga_pokok);
-                            $variant->weight = !empty($vItem['weight']) ? (int) $vItem['weight'] : (!empty($item['weight']) ? (int) $item['weight'] : $variant->weight);
-                            $variant->stok_aktual = $vStock;
-                            $variant->save();
+                            // Update stok aktual produk induk sama dengan total stok seluruh varian yang tersedia
+                            $product->update(['stok_aktual' => $totalVariantStock]);
                         }
-
-                        // Update stok aktual produk induk sama dengan total stok seluruh varian yang tersedia
-                        $product->update(['stok_aktual' => $totalVariantStock]);
+                    } catch (\Throwable $itemErr) {
+                        Log::error("Olsera sync product item error: " . $itemErr->getMessage());
                     }
                 }
 
@@ -718,6 +907,11 @@ class OlseraApiService
                 Log::warning('Olsera sync log creation warning: ' . $logE->getMessage());
             }
 
+            $syncMessage = "Berhasil menyinkronkan ({$modeDesc}): {$syncedCount} produk baru dan memperbarui {$updatedStockCount} stok produk dari Olsera POS.";
+            if ($timeLimitReached) {
+                $syncMessage .= " (Dijeda pada halaman {$page} demi keamanan batas waktu Nginx. Silakan klik sinkron kembali untuk melanjutkan).";
+            }
+
             return [
                 'success' => true,
                 'mode' => 'live',
@@ -725,7 +919,7 @@ class OlseraApiService
                 'last_timestamp' => $lastSyncTimestamp,
                 'synced_products' => $syncedCount,
                 'updated_stocks' => $updatedStockCount,
-                'message' => "Berhasil menyinkronkan ({$modeDesc}): {$syncedCount} produk baru dan memperbarui {$updatedStockCount} stok produk dari Olsera POS."
+                'message' => $syncMessage
             ];
         } catch (\Exception $e) {
             Log::error('Olsera syncCatalogAndStock Error: ' . $e->getMessage());
@@ -738,7 +932,7 @@ class OlseraApiService
     }
 
     /**
-     * Mengirim penyesuaian/mutasi stok ke Olsera POS
+     * Mengirim penyesuaian/mutasi stok ke Olsera POS melalui POST /product/update
      */
     public function adjustStock(string $productSku, int $quantityChange, ?string $outletId = null, string $type = 'out', string $note = 'Transaksi E-Commerce'): bool
     {
@@ -747,15 +941,78 @@ class OlseraApiService
             return true;
         }
 
+        $outletId = $outletId ?: $this->defaultOutletId;
+
         try {
-            $response = $this->requestWithAutoRetry('post', 'product', [
-                'sku' => $productSku,
-                'quantity' => $quantityChange,
-                'type' => $type,
-                'note' => $note
+            $searchRes = $this->requestWithAutoRetry('get', 'product', [
+                'search' => $productSku,
+                'outlet_id' => $outletId,
+                'per_page' => 5
             ], 10);
 
-            return $response->successful();
+            if (!$searchRes->successful() || empty($searchRes->json('data'))) {
+                Log::warning("Olsera adjustStock: SKU [{$productSku}] tidak ditemukan di Olsera POS.");
+                return false;
+            }
+
+            $olseraItems = $searchRes->json('data');
+            $matchedProduct = null;
+            $matchedVariant = null;
+
+            foreach ($olseraItems as $oProduct) {
+                if (!empty($oProduct['variants'])) {
+                    foreach ($oProduct['variants'] as $oVar) {
+                        if (isset($oVar['sku']) && trim((string)$oVar['sku']) === $productSku) {
+                            $matchedProduct = $oProduct;
+                            $matchedVariant = $oVar;
+                            break 2;
+                        }
+                    }
+                }
+
+                if (isset($oProduct['sku']) && trim((string)$oProduct['sku']) === $productSku) {
+                    $matchedProduct = $oProduct;
+                    break;
+                }
+            }
+
+            if (!$matchedProduct) {
+                Log::warning("Olsera adjustStock: Tidak ada kecocokan SKU [{$productSku}] di Olsera.");
+                return false;
+            }
+
+            $olseraProductId = $matchedProduct['id'];
+
+            if ($matchedVariant) {
+                $currentStock = (int) ($matchedVariant['stock_qty'] ?? 0);
+                $newStock = ($type === 'in') ? ($currentStock + $quantityChange) : max(0, $currentStock - $quantityChange);
+
+                $updateRes = $this->requestWithAutoRetry('post', 'product/update', [
+                    'id' => (int) $olseraProductId,
+                    'to_store_id' => (string) $outletId,
+                    'product' => [
+                        'variants' => [
+                            [
+                                'id' => (int) $matchedVariant['id'],
+                                'stock_qty' => $newStock
+                            ]
+                        ]
+                    ]
+                ], 12);
+            } else {
+                $currentStock = (int) ($matchedProduct['stock_qty'] ?? 0);
+                $newStock = ($type === 'in') ? ($currentStock + $quantityChange) : max(0, $currentStock - $quantityChange);
+
+                $updateRes = $this->requestWithAutoRetry('post', 'product/update', [
+                    'id' => (int) $olseraProductId,
+                    'to_store_id' => (string) $outletId,
+                    'product' => [
+                        'stock_qty' => $newStock
+                    ]
+                ], 12);
+            }
+
+            return $updateRes->successful();
         } catch (\Exception $e) {
             Log::error("Olsera adjustStock Error for SKU {$productSku}: " . $e->getMessage());
             return false;
@@ -763,75 +1020,216 @@ class OlseraApiService
     }
 
     /**
-     * Mengirim / Push Transaksi Penjualan Online ke Olsera POS
+     * Memotong stok di Olsera POS secara langsung saat pesanan online terbayar
+     * Menggunakan endpoint resmi POST /product/update
      */
     public function pushSalesOrder(\App\Models\Order $order): array
     {
         $order->loadMissing(['items.product', 'items.variant', 'user']);
 
-        $itemsPayload = [];
-        foreach ($order->items as $item) {
-            $sku = $item->variant ? ($item->variant->kode_barang ?? 'SKU-V-' . $item->variant->id) : ($item->product->kode_barang ?? 'SKU-P-' . $item->product->id);
-            $itemsPayload[] = [
-                'sku' => $sku,
-                'name' => $item->product ? $item->product->nama_barang . ($item->variant ? ' - ' . $item->variant->nama_varian : '') : 'Produk Podgasm',
-                'quantity' => $item->quantity,
-                'price' => (float) $item->price,
-                'subtotal' => (float) ($item->price * $item->quantity),
-            ];
-        }
-
-        $payload = [
-            'invoice_number' => $order->invoice_number,
-            'outlet_id' => $this->defaultOutletId,
-            'customer_name' => $order->nama_penerima,
-            'customer_email' => $order->email,
-            'customer_phone' => $order->no_telp,
-            'total_amount' => (float) $order->total_harga,
-            'ongkir' => (float) ($order->ongkir ?? 0),
-            'discount' => (float) ($order->discount ?? 0),
-            'payment_method' => $order->metode_pembayaran ?? 'Online Payment',
-            'order_date' => $order->created_at ? $order->created_at->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s'),
-            'status' => 'completed',
-            'items' => $itemsPayload,
-        ];
-
         if ($this->mockMode) {
-            Log::info("Olsera Mock Push Sales Order [{$order->invoice_number}]:", $payload);
+            Log::info("Olsera Mock Push Sales Order: Simulasi pemotongan stok & pembuatan transaksi harian POS untuk order {$order->invoice_number}.");
             return [
-                'success' => true,
-                'mode' => 'mock',
-                'message' => "Simulasi push pesanan {$order->invoice_number} ke Olsera POS berhasil tercatat."
+                'success'         => true,
+                'mode'            => 'mock',
+                'olsera_order_id' => 'MOCK-POS-' . $order->id,
+                'synced_items'    => $order->items->count(),
+                'message'         => "Simulasi pemotongan stok dan pencatatan transaksi pesanan {$order->invoice_number} ke Olsera POS berhasil."
             ];
         }
 
-        try {
-            $response = $this->requestWithAutoRetry('post', 'product', $payload, 12);
+        $outletId = $this->defaultOutletId;
+        $syncedItems = 0;
+        $failedItems = [];
+        $olseraOrderId = null;
 
-            if ($response->successful()) {
-                Log::info("Olsera Live Push Sales Order Success [{$order->invoice_number}]");
-                return [
-                    'success' => true,
-                    'mode' => 'live',
-                    'message' => "Pesanan {$order->invoice_number} berhasil dikirim ke sistem Olsera POS.",
-                    'data' => $response->json()
-                ];
+        // =========================================================================
+        // LANGKAH 1: Buat Transaksi Penjualan Resmi di Olsera POS (Open Order)
+        // agar transaksi web ini tercatat dalam Penjualan Harian & Laporan Penutupan Penjualan POS
+        // =========================================================================
+        try {
+            $customerName = $order->shipping_name ?? $order->user?->name ?? 'Pelanggan Website';
+            $customerEmail = $order->shipping_email ?? $order->user?->email ?? 'order@podgasm.id';
+            $customerPhone = $order->shipping_phone ?? $order->user?->phone ?? '081217195254';
+            $paymentMethod = strtoupper($order->payment_method ?? 'Payment Gateway');
+
+            $orderPayload = [
+                'order_date'     => now()->timezone('Asia/Jakarta')->format('Y-m-d'),
+                'currency_id'    => 'IDR',
+                'customer_name'  => $customerName,
+                'customer_email' => $customerEmail,
+                'customer_phone' => $customerPhone,
+                'notes'          => "Transaksi E-Commerce #{$order->invoice_number} ({$paymentMethod})",
+                'outlet_id'      => $outletId,
+            ];
+
+            $createOrderRes = $this->requestWithAutoRetry('post', 'order/openorder', $orderPayload, 15);
+            if ($createOrderRes->successful()) {
+                $createdData = $createOrderRes->json('data') ?? $createOrderRes->json();
+                $olseraOrderId = $createdData['id'] ?? $createdData['order_id'] ?? null;
+                Log::info("Olsera Open Order created successfully: ID #{$olseraOrderId} for invoice {$order->invoice_number}");
+            } else {
+                Log::warning("Olsera openorder create returned HTTP {$createOrderRes->status()}: " . $createOrderRes->body());
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Olsera openorder creation exception for {$order->invoice_number}: " . $e->getMessage());
+        }
+
+        // =========================================================================
+        // LANGKAH 2: Masukkan Produk ke Order Olsera & Sinkronkan Stok Aktual
+        // =========================================================================
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            $variant = $item->variant;
+            $sku = trim((string) ($variant ? ($variant->kode_barang ?? '') : ($product->kode_barang ?? '')));
+
+            if (empty($sku)) {
+                Log::warning("Olsera Stock Deduction: Item pesanan ID {$item->id} (Order #{$order->invoice_number}) tidak memiliki SKU. Dilewati.");
+                continue;
             }
 
-            Log::warning("Olsera Live Push Sales Order: " . $response->body());
-            return [
-                'success' => true,
-                'mode' => 'live',
-                'message' => "Pesanan tercatat di sistem lokal."
-            ];
-        } catch (\Exception $e) {
-            Log::error("Olsera pushSalesOrder Exception for [{$order->invoice_number}]: " . $e->getMessage());
-            return [
-                'success' => false,
-                'mode' => 'live',
-                'message' => "Terjadi kesalahan koneksi saat mengirim pesanan ke Olsera: " . $e->getMessage()
-            ];
+            $remainingStock = (int) ($variant ? $variant->stok_aktual : $product->stok_aktual);
+
+            try {
+                // 1. Cari produk di katalog Olsera berdasarkan SKU
+                $searchRes = $this->requestWithAutoRetry('get', 'product', [
+                    'search'    => $sku,
+                    'outlet_id' => $outletId,
+                    'per_page'  => 5
+                ], 10);
+
+                if (!$searchRes->successful() || empty($searchRes->json('data'))) {
+                    Log::warning("Olsera Stock Deduction: SKU [{$sku}] tidak ditemukan di katalog Olsera POS.");
+                    continue;
+                }
+
+                $olseraItems = $searchRes->json('data');
+                $matchedOlseraProduct = null;
+                $matchedOlseraVariant = null;
+
+                foreach ($olseraItems as $oProduct) {
+                    if (!empty($oProduct['variants'])) {
+                        foreach ($oProduct['variants'] as $oVar) {
+                            if (isset($oVar['sku']) && trim((string)$oVar['sku']) === $sku) {
+                                $matchedOlseraProduct = $oProduct;
+                                $matchedOlseraVariant = $oVar;
+                                break 2;
+                            }
+                        }
+                    }
+                    if (isset($oProduct['sku']) && trim((string)$oProduct['sku']) === $sku) {
+                        $matchedOlseraProduct = $oProduct;
+                        break;
+                    }
+                }
+
+                if (!$matchedOlseraProduct) {
+                    Log::warning("Olsera Stock Deduction: Tidak ada produk/varian Olsera yang persis cocok dengan SKU [{$sku}].");
+                    continue;
+                }
+
+                $olseraProductId = $matchedOlseraProduct['id'];
+                $olseraVariantId = $matchedOlseraVariant ? $matchedOlseraVariant['id'] : 0;
+
+                // 2A. Tambahkan Item ke Open Order di Olsera POS
+                if ($olseraOrderId) {
+                    try {
+                        $addItemRes = $this->requestWithAutoRetry('post', 'order/openorder/additem', [
+                            'order_id'      => (string) $olseraOrderId,
+                            'item_products' => "{$olseraProductId}|{$olseraVariantId}",
+                            'item_qty'      => (int) $item->quantity,
+                        ], 12);
+
+                        if ($addItemRes->successful()) {
+                            Log::info("Olsera item [{$sku}] qty {$item->quantity} added to Order #{$olseraOrderId}");
+                        } else {
+                            Log::warning("Olsera additem to order #{$olseraOrderId} failed: " . $addItemRes->body());
+                        }
+                    } catch (\Throwable $addE) {
+                        Log::warning("Olsera additem exception: " . $addE->getMessage());
+                    }
+                }
+
+                // 2B. Sinkronkan Mutasi Stok Aktual ke Olsera POS (POST /product/update)
+                // Menjamin pengurangan stok fisik di Olsera secara presisi sesuai stok lokal Podgasm
+                if ($matchedOlseraVariant) {
+                    $updatePayload = [
+                        'id'          => (int) $olseraProductId,
+                        'to_store_id' => (string) $outletId,
+                        'product'     => [
+                            'variants' => [
+                                [
+                                    'id'        => (int) $matchedOlseraVariant['id'],
+                                    'stock_qty' => $remainingStock
+                                ]
+                            ]
+                        ]
+                    ];
+                } else {
+                    $updatePayload = [
+                        'id'          => (int) $olseraProductId,
+                        'to_store_id' => (string) $outletId,
+                        'product'     => [
+                            'stock_qty' => $remainingStock
+                        ]
+                    ];
+                }
+
+                $updateRes = $this->requestWithAutoRetry('post', 'product/update', $updatePayload, 12);
+                if ($updateRes->successful()) {
+                    $syncedItems++;
+                    Log::info("✅ Olsera Stock Deduction Sukses: Stok SKU [{$sku}] di Olsera POS berhasil disinkronkan ke {$remainingStock} unit.");
+                } else {
+                    $errorMsg = "HTTP {$updateRes->status()}: " . $updateRes->body();
+                    Log::error("❌ Olsera Stock Deduction Gagal untuk SKU [{$sku}]: {$errorMsg}");
+                    $failedItems[] = "SKU {$sku} ({$errorMsg})";
+                }
+
+            } catch (\Exception $e) {
+                Log::error("Olsera Stock Deduction Exception untuk SKU [{$sku}]: " . $e->getMessage());
+                $failedItems[] = "SKU {$sku} (" . $e->getMessage() . ")";
+            }
         }
+
+        // =========================================================================
+        // LANGKAH 3: Selesaikan Transaksi POS (Status Z) -> Masuk Laporan Penutupan Penjualan
+        // =========================================================================
+        if ($olseraOrderId) {
+            try {
+                // Tandai pembayaran sudah lunas (1 = Paid)
+                $this->requestWithAutoRetry('post', 'order/openorder/updatepaymentstatus', [
+                    'order_id' => (string) $olseraOrderId,
+                    'status'   => '1',
+                ], 10);
+
+                // Finalisasi status order ke 'Z' (Selesai), resmi masuk ke Penjualan Harian kasir POS
+                $closeRes = $this->requestWithAutoRetry('post', 'order/openorder/updatestatus', [
+                    'order_id' => (string) $olseraOrderId,
+                    'status'   => 'Z',
+                ], 10);
+
+                if ($closeRes->successful()) {
+                    Log::info("🎉 Transaksi Olsera POS Order #{$olseraOrderId} berhasil diselesaikan (Status Z). Resmi tercatat di Laporan Penutupan Penjualan Kasir POS.");
+                } else {
+                    Log::warning("Olsera order #{$olseraOrderId} updatestatus failed: " . $closeRes->body());
+                }
+            } catch (\Throwable $finalE) {
+                Log::warning("Olsera order finalization exception: " . $finalE->getMessage());
+            }
+        }
+
+        if (!empty($failedItems)) {
+            $summaryError = implode(', ', $failedItems);
+            throw new \RuntimeException("Gagal menyinkronkan pemotongan stok ke Olsera POS untuk Order #{$order->invoice_number}: {$summaryError}");
+        }
+
+        return [
+            'success'         => true,
+            'mode'            => 'live',
+            'olsera_order_id' => $olseraOrderId,
+            'synced_items'    => $syncedItems,
+            'message'         => "Berhasil memotong {$syncedItems} item ke Olsera POS dan mencatatkan transaksi ke Laporan Penutupan Penjualan untuk Order #{$order->invoice_number}."
+        ];
     }
 
     /**

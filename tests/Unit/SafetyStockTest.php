@@ -79,8 +79,8 @@ class SafetyStockTest extends TestCase
         // 3. Verify safety stock and average sales are calculated and updated in DB
         $this->product->refresh();
 
-        // Average daily sales = 10 / 30 = 0.33
-        $this->assertEquals(0.33, $this->product->rata_penjualan);
+        // Average daily sales in 90-day window = 10 / 90 = 0.11
+        $this->assertEquals(0.11, $this->product->rata_penjualan);
 
         // Z-score for class A/B/C: Since there is only one product, it contributes 100% of sales.
         // In the command, if sales cumulative percentage is <= 70% it is A, but if it is the only one, cumulative is 100% which falls into C.

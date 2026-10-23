@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/midtrans/notification',
             'midtrans/notification',
             'api/olsera/webhook',
+            'api/webhook/olsera',
+            'webhook/olsera',
             'api/biteship/webhook',
             'webhook/biteship',
         ]);

@@ -1,7 +1,62 @@
 @extends('layouts.frontend')
 
+@push('styles')
+<style>
+    .staging-alert {
+        background-color: #fffbeb;
+        border-left: 4px solid #f59e0b !important;
+    }
+    .staging-title {
+        color: #1e293b;
+    }
+    .staging-desc {
+        color: #475569;
+    }
+
+    body.dark-mode .staging-alert,
+    html[data-bs-theme="dark"] .staging-alert {
+        background-color: #1c1917 !important;
+        border-left: 4px solid #f59e0b !important;
+    }
+    body.dark-mode .staging-title,
+    html[data-bs-theme="dark"] .staging-title {
+        color: #f1f5f9 !important;
+    }
+    body.dark-mode .staging-desc,
+    html[data-bs-theme="dark"] .staging-desc {
+        color: #94a3b8 !important;
+    }
+</style>
+@endpush
+
 @section('content')
-<div class="container-fluid px-3 px-md-4 px-xl-5 py-3">
+<div class="container-fluid px-3 px-md-4 px-xl-5 pt-1 pb-3">
+
+    {{-- STAGING / PRE-PRODUCTION NOTICE BANNER --}}
+    <div class="row mb-3 mt-1">
+        <div class="col-12">
+            <div class="alert alert-warning border-0 shadow-sm rounded-3 py-3 px-3.5 mb-0 staging-alert">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="staging-alert-icon flex-shrink-0 pt-0.5">
+                        <i class="fas fa-info-circle fs-4 text-warning"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-semibold px-2 py-0.5" style="font-size: 0.72rem;">
+                                PRE-PRODUCTION
+                            </span>
+                            <span class="fw-bold staging-title" style="font-size: 0.95rem;">
+                                Website Belum Dibuka untuk Publik
+                            </span>
+                        </div>
+                        <p class="staging-desc small mb-0" style="line-height: 1.5;">
+                            Website ini masih dalam tahap pengujian sistem dan <strong>belum go production</strong>. Mohon untuk <strong>tidak melakukan pendaftaran akun</strong> serta <strong>tidak melakukan transaksi pembelian</strong> pada website ini karena transaksi tidak akan diproses.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {{-- Promo Banner Slider --}}
     <div class="row mb-4">

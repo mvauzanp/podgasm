@@ -810,6 +810,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.innerHTML = originalHTML;
                     this.disabled = false;
                     restoreStickyBtn();
+
+                    // Sinkronkan stok seketika saat gagal menambahkan karena masalah stok
+                    if (data.message && (data.message.toLowerCase().includes('stok') || data.message.toLowerCase().includes('habis'))) {
+                        syncLiveStock(true);
+                    }
                 }
             })
             .catch(error => {
@@ -906,6 +911,207 @@ document.addEventListener('DOMContentLoaded', function() {
             }, { passive: true });
         }
     }
+
+    // -------------------------------------------------------------
+    // Smart On-Action & Tab-Focus Live Stock Sync (Option 1)
+    // -------------------------------------------------------------
+    let lastStockSyncTime = 0;
+    let isStockSyncing = false;
+
+    function syncLiveStock(force = false) {
+        const now = Date.now();
+        // Debounce: cegah spam request dengan jeda minimal 6 detik kecuali dipaksa (force)
+        if (!force && (now - lastStockSyncTime < 6000 || isStockSyncing)) {
+            return;
+        }
+
+        isStockSyncing = true;
+        const stockUrl = "{{ route('public.product.stock', $product->id) }}";
+
+        fetch(stockUrl, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network or server response error');
+            return response.json();
+        })
+        .then(data => {
+            lastStockSyncTime = Date.now();
+            isStockSyncing = false;
+            if (!data || !data.success) return;
+
+            // 1. Jika produk memiliki varian
+            if (data.has_variants && data.variants && data.variants.length > 0) {
+                const currentSelectedId = selectedVariantInput ? selectedVariantInput.value : null;
+
+                data.variants.forEach(vData => {
+                    const btn = document.querySelector(`.variant-btn[data-variant-id="${vData.id}"]`);
+                    if (!btn) return;
+
+                    const prevStock = parseInt(btn.getAttribute('data-variant-stock')) || 0;
+                    btn.setAttribute('data-variant-stock', vData.stock);
+
+                    // Update badge teks pada tombol varian
+                    let badgeSpan = btn.querySelector('.text-muted, .text-danger');
+                    if (vData.stock <= 0) {
+                        btn.setAttribute('data-out-of-stock', '1');
+                        if (badgeSpan) {
+                            badgeSpan.className = 'small text-danger ms-1 fw-normal';
+                            badgeSpan.textContent = '(Habis)';
+                        }
+                    } else {
+                        btn.removeAttribute('data-out-of-stock');
+                        if (badgeSpan) {
+                            badgeSpan.className = 'small text-muted ms-1 fw-normal';
+                            badgeSpan.textContent = `(${vData.stock})`;
+                        }
+                    }
+
+                    // Jika varian ini yang sedang aktif dipilih pengguna
+                    if (currentSelectedId && currentSelectedId == vData.id) {
+                        maxQty = vData.stock;
+                        if (quantityInput) {
+                            quantityInput.setAttribute('max', vData.stock);
+                            if (vData.stock <= 0) {
+                                quantityInput.value = 0;
+                            } else if (parseInt(quantityInput.value) > vData.stock) {
+                                quantityInput.value = vData.stock;
+                            }
+                        }
+
+                        if (vData.stock <= 0) {
+                            if (addToCartBtn) {
+                                addToCartBtn.disabled = true;
+                                addToCartBtn.classList.remove('btn-primary');
+                                addToCartBtn.classList.add('btn-secondary');
+                                addToCartBtn.innerHTML = '<i class="fas fa-times-circle me-2"></i> Varian Ini Habis';
+                            }
+                            if (stockLimitText) {
+                                stockLimitText.innerHTML = `<span class="text-danger fw-semibold"><i class="fas fa-times-circle me-1"></i> Varian ini Habis</span>`;
+                            }
+                            const stickyActionBtn = document.getElementById('mobileStickyActionBtn');
+                            const stickyBtnText = document.getElementById('mobileStickyBtnText');
+                            const stickyVariantLabel = document.getElementById('mobileStickyVariantLabel');
+                            if (stickyActionBtn) {
+                                stickyActionBtn.disabled = true;
+                                stickyActionBtn.classList.remove('btn-primary');
+                                stickyActionBtn.classList.add('btn-secondary');
+                                if (stickyBtnText) stickyBtnText.textContent = 'Habis';
+                            }
+                            if (stickyVariantLabel) {
+                                const varName = btn.getAttribute('data-variant-name') || btn.innerText.trim();
+                                stickyVariantLabel.innerHTML = `<span class="text-dark fw-semibold">${varName}</span> <span class="text-danger small">(Habis)</span>`;
+                            }
+                            if (prevStock > 0 && typeof showToast === 'function') {
+                                showToast('Varian yang Anda pilih baru saja habis terjual.', 'warning', 3500);
+                            }
+                        } else {
+                            if (addToCartBtn && addToCartBtn.disabled) {
+                                addToCartBtn.disabled = false;
+                                addToCartBtn.classList.remove('btn-secondary');
+                                addToCartBtn.classList.add('btn-primary');
+                                addToCartBtn.innerHTML = '<i class="fas fa-shopping-bag me-2"></i> Tambah ke Keranjang';
+                            }
+                            if (stockLimitText) {
+                                stockLimitText.innerHTML = `<span class="text-success fw-semibold"><i class="fas fa-check-circle me-1"></i> Tersedia ${vData.stock} unit</span>`;
+                            }
+                            const stickyActionBtn = document.getElementById('mobileStickyActionBtn');
+                            const stickyBtnText = document.getElementById('mobileStickyBtnText');
+                            const stickyVariantLabel = document.getElementById('mobileStickyVariantLabel');
+                            if (stickyActionBtn) {
+                                stickyActionBtn.disabled = false;
+                                stickyActionBtn.classList.remove('btn-secondary');
+                                stickyActionBtn.classList.add('btn-primary');
+                                if (stickyBtnText) stickyBtnText.textContent = 'Tambah';
+                            }
+                            if (stickyVariantLabel) {
+                                const varName = btn.getAttribute('data-variant-name') || btn.innerText.trim();
+                                stickyVariantLabel.innerHTML = `<span class="text-dark fw-semibold">${varName}</span> <span class="text-success small">(${vData.stock})</span>`;
+                            }
+                            if (prevStock !== vData.stock && prevStock > 0 && typeof showToast === 'function') {
+                                showToast(`Stok varian diperbarui: tersisa ${vData.stock} unit.`, 'info', 2500);
+                            }
+                        }
+                    }
+                });
+            } else {
+                // 2. Produk standar (tanpa varian)
+                const currentStock = data.stock;
+                const prevStock = maxQty;
+                maxQty = currentStock;
+
+                if (quantityInput) {
+                    quantityInput.setAttribute('max', currentStock);
+                    if (currentStock <= 0) {
+                        quantityInput.value = 0;
+                    } else if (parseInt(quantityInput.value) > currentStock) {
+                        quantityInput.value = currentStock;
+                    }
+                }
+
+                if (stockLimitText) {
+                    if (currentStock > 0) {
+                        stockLimitText.innerHTML = `<span class="text-success fw-semibold"><i class="fas fa-check-circle me-1"></i> Tersedia ${currentStock} unit</span>`;
+                    } else {
+                        stockLimitText.innerHTML = `<span class="text-danger fw-semibold"><i class="fas fa-times-circle me-1"></i> Stok Habis</span>`;
+                    }
+                }
+
+                const stickyActionBtn = document.getElementById('mobileStickyActionBtn');
+                const stickyBtnText = document.getElementById('mobileStickyBtnText');
+
+                if (currentStock <= 0) {
+                    if (addToCartBtn) {
+                        addToCartBtn.disabled = true;
+                        addToCartBtn.classList.remove('btn-primary');
+                        addToCartBtn.classList.add('btn-secondary');
+                        addToCartBtn.innerHTML = '<i class="fas fa-times-circle me-2"></i> Stok Habis';
+                    }
+                    if (stickyActionBtn) {
+                        stickyActionBtn.disabled = true;
+                        stickyActionBtn.classList.remove('btn-primary');
+                        stickyActionBtn.classList.add('btn-secondary');
+                        if (stickyBtnText) stickyBtnText.textContent = 'Habis';
+                    }
+                    if (prevStock > 0 && typeof showToast === 'function') {
+                        showToast('Produk ini baru saja habis terjual.', 'warning', 3500);
+                    }
+                } else if (prevStock <= 0) {
+                    if (addToCartBtn) {
+                        addToCartBtn.disabled = false;
+                        addToCartBtn.classList.remove('btn-secondary');
+                        addToCartBtn.classList.add('btn-primary');
+                        addToCartBtn.innerHTML = '<i class="fas fa-shopping-bag me-2"></i> Tambah ke Keranjang';
+                    }
+                    if (stickyActionBtn) {
+                        stickyActionBtn.disabled = false;
+                        stickyActionBtn.classList.remove('btn-secondary');
+                        stickyActionBtn.classList.add('btn-primary');
+                        if (stickyBtnText) stickyBtnText.textContent = 'Tambah';
+                    }
+                } else if (prevStock !== currentStock && typeof showToast === 'function') {
+                    showToast(`Stok produk diperbarui: tersisa ${currentStock} unit.`, 'info', 2500);
+                }
+            }
+        })
+        .catch(err => {
+            isStockSyncing = false;
+            console.debug('Live stock sync skipped:', err.message);
+        });
+    }
+
+    // Listener: Sinkronisasi saat tab aktif kembali
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            syncLiveStock();
+        }
+    });
+
+    window.addEventListener('focus', function() {
+        syncLiveStock();
+    });
 });
 
 function copyProductLink() {

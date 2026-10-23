@@ -66,11 +66,11 @@ class OlseraWebhookController extends Controller
         }
 
         try {
-            // 4. ASYNCHRONOUS QUEUE DISPATCH (< 5ms)
-            // Mengantrekan job ke database queue alih-alih dispatchSync yang memblokir respons HTTP
-            ProcessOlseraWebhookJob::dispatch($payload);
+            // 4. INSTANT REAL-TIME DISPATCH (dispatchSync)
+            // Mengeksekusi pemotongan/pembaruan stok secara instan (< 10ms) tanpa bergantung pada queue worker Hostinger
+            ProcessOlseraWebhookJob::dispatchSync($payload);
 
-            // 5. Jika payload adalah notifikasi perubahan umum tanpa detail data spesifik, antrekan delta sync ke queue
+            // 5. Jika payload adalah notifikasi perubahan katalog umum tanpa detail data spesifik, antrekan delta sync
             if (empty($payload['data']) || !is_array($payload['data'])) {
                 SyncOlseraDeltaJob::dispatch();
             }
@@ -78,7 +78,7 @@ class OlseraWebhookController extends Controller
             // 6. IMMEDIATE FAST-ACK HTTP 200 OK (< 30ms)
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Olsera webhook successfully received and queued for processing.',
+                'message' => 'Olsera webhook successfully processed in real-time.',
                 'event'   => $eventType,
             ], 200);
 
