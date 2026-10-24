@@ -467,14 +467,34 @@ class OlseraApiService
         }
 
         try {
-            $searchKey = $product->kode_barang ?: $product->nama_barang;
-            $response = $this->requestWithAutoRetry('get', 'product', [
+            // Olsera API search: Utamakan nama barang jika kode_barang adalah format sintetis SKU-P-xxx
+            $searchKey = $product->nama_barang;
+            if (!empty($product->kode_barang) && !str_starts_with($product->kode_barang, 'SKU-P-')) {
+                $searchKey = $product->kode_barang;
+            }
+
+            $queryParams = [
                 'search'    => $searchKey,
                 'outlet_id' => $this->defaultOutletId,
                 'per_page'  => 5
-            ], 6);
+            ];
 
-            if (!$response->successful()) {
+            if (preg_match('/^SKU-P-(\d+)$/i', (string)$product->kode_barang, $m)) {
+                $queryParams['id'] = $m[1];
+            }
+
+            $response = $this->requestWithAutoRetry('get', 'product', $queryParams, 6);
+
+            // Fallback cari dengan nama produk saja jika tidak ditemukan
+            if (!$response->successful() || empty($response->json('data'))) {
+                $response = $this->requestWithAutoRetry('get', 'product', [
+                    'search'    => $product->nama_barang,
+                    'outlet_id' => $this->defaultOutletId,
+                    'per_page'  => 5
+                ], 6);
+            }
+
+            if (!$response->successful() || empty($response->json('data'))) {
                 return false;
             }
 
@@ -509,32 +529,38 @@ class OlseraApiService
                         $vStock = (int) ($vItem['stock_qty'] ?? $vItem['stock'] ?? 0);
                         $totalVariantStock += $vStock;
                         $vSku = !empty($vItem['sku']) ? $vItem['sku'] : null;
+                        $vId = $vItem['id'] ?? null;
                         $vName = trim((string)($vItem['name'] ?? ''));
 
                         $variant = null;
                         if ($vSku) {
                             $variant = ProductVariant::where('kode_barang', $vSku)->first();
                         }
+                        if (!$variant && $vId) {
+                            $variant = ProductVariant::where('kode_barang', 'SKU-V-' . $vId)->first();
+                        }
                         if (!$variant && $vName) {
-                            $variant = ProductVariant::where('product_id', $product->id)->where('nama_varian', $vName)->first();
+                            $variant = ProductVariant::where('product_id', $product->id)
+                                ->where('nama_varian', $vName)
+                                ->first();
                         }
 
-                        if ($variant) {
-                            $variant->update(['stok_aktual' => $vStock]);
-                        }
-                    }
-                    $product->update(['stok_aktual' => $totalVariantStock]);
-                } else {
-                    $product->update(['stok_aktual' => $initialStock]);
-                }
-            });
+                         if ($variant) {
+                             $variant->update(['stok_aktual' => $vStock]);
+                         }
+                     }
+                     $product->update(['stok_aktual' => $totalVariantStock]);
+                 } else {
+                     $product->update(['stok_aktual' => $initialStock]);
+                 }
+             });
 
-            return true;
-        } catch (\Throwable $e) {
-            Log::warning("syncSingleProduct failed for Product #{$product->id}: " . $e->getMessage());
-            return false;
-        }
-    }
+             return true;
+         } catch (\Throwable $e) {
+             Log::warning("syncSingleProduct failed for Product #{$product->id}: " . $e->getMessage());
+             return false;
+         }
+     }
 
 
     /**
