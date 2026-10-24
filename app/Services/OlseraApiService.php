@@ -457,6 +457,85 @@ class OlseraApiService
         return $product ? (int) $product->stok_aktual : 0;
     }
 
+    /**
+     * Sinkronisasi live 1 produk beserta seluruh variannya secara instan (< 1 detik) langsung dari Olsera Cloud
+     */
+    public function syncSingleProduct(Product $product): bool
+    {
+        if ($this->mockMode) {
+            return true;
+        }
+
+        try {
+            $searchKey = $product->kode_barang ?: $product->nama_barang;
+            $response = $this->requestWithAutoRetry('get', 'product', [
+                'search'    => $searchKey,
+                'outlet_id' => $this->defaultOutletId,
+                'per_page'  => 5
+            ], 6);
+
+            if (!$response->successful()) {
+                return false;
+            }
+
+            $items = $response->json('data') ?? [];
+            $matched = null;
+            foreach ($items as $item) {
+                if (isset($item['sku']) && !empty($item['sku']) && $item['sku'] === $product->kode_barang) {
+                    $matched = $item;
+                    break;
+                }
+                if (trim((string)($item['name'] ?? '')) === trim((string)$product->nama_barang)) {
+                    $matched = $item;
+                    break;
+                }
+            }
+
+            if (!$matched && !empty($items)) {
+                $matched = $items[0];
+            }
+
+            if (!$matched) {
+                return false;
+            }
+
+            \Illuminate\Support\Facades\DB::transaction(function () use ($product, $matched) {
+                $hasVariants = !empty($matched['variants']);
+                $initialStock = $hasVariants ? (int) collect($matched['variants'])->sum('stock_qty') : (int) ($matched['stock_qty'] ?? 0);
+
+                if ($hasVariants) {
+                    $totalVariantStock = 0;
+                    foreach ($matched['variants'] as $vItem) {
+                        $vStock = (int) ($vItem['stock_qty'] ?? $vItem['stock'] ?? 0);
+                        $totalVariantStock += $vStock;
+                        $vSku = !empty($vItem['sku']) ? $vItem['sku'] : null;
+                        $vName = trim((string)($vItem['name'] ?? ''));
+
+                        $variant = null;
+                        if ($vSku) {
+                            $variant = ProductVariant::where('kode_barang', $vSku)->first();
+                        }
+                        if (!$variant && $vName) {
+                            $variant = ProductVariant::where('product_id', $product->id)->where('nama_varian', $vName)->first();
+                        }
+
+                        if ($variant) {
+                            $variant->update(['stok_aktual' => $vStock]);
+                        }
+                    }
+                    $product->update(['stok_aktual' => $totalVariantStock]);
+                } else {
+                    $product->update(['stok_aktual' => $initialStock]);
+                }
+            });
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning("syncSingleProduct failed for Product #{$product->id}: " . $e->getMessage());
+            return false;
+        }
+    }
+
 
     /**
      * Mengambil daftar produk dari API Olsera dengan dukungan Delta Filter (Smart Polling) & Proteksi Rate Limit (HTTP 429 Retry Backoff)

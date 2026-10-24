@@ -153,8 +153,20 @@ class PublicController extends Controller
     public function show($slug)
     {
         // Cari produk publik berdasarkan slug dan load reviews
-        $product = Product::publicVisible()->with('reviews.user')->where('slug', $slug)->firstOrFail();
-        
+        $product = Product::publicVisible()->with(['reviews.user', 'variants'])->where('slug', $slug)->firstOrFail();
+
+        // Smart On-Demand Olsera Sync: Sinkronkan seketika jika belum divalidasi dalam 15 detik terakhir
+        $cacheKey = "prod_live_olsera_{$product->id}";
+        if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            try {
+                app(\App\Services\OlseraApiService::class)->syncSingleProduct($product);
+                \Illuminate\Support\Facades\Cache::put($cacheKey, true, 15);
+                $product->refresh();
+                $product->load(['variants', 'images', 'category', 'reviews.user']);
+            } catch (\Throwable $e) {
+                // Fail-safe, tetap tampilkan data database
+            }
+        }
         // Ambil semua kategori untuk navbar
         $categories = Category::publicVisible()->with('children')->get();
         
@@ -319,15 +331,26 @@ class PublicController extends Controller
      */
     public function getStock(int $id)
     {
-        $product = Product::select('id', 'stok_aktual')
-            ->with(['variants:id,product_id,nama_varian,stok_aktual'])
-            ->find($id);
+        $product = Product::with(['variants:id,product_id,nama_varian,stok_aktual,kode_barang'])->find($id);
 
         if (!$product) {
             return response()->json([
                 'success' => false,
                 'message' => 'Produk tidak ditemukan'
             ], 404);
+        }
+
+        // Live Olsera Verification: Validasi instan ke Olsera Cloud jika belum dicek dalam 15 detik
+        $cacheKey = "prod_live_olsera_{$id}";
+        if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            try {
+                app(\App\Services\OlseraApiService::class)->syncSingleProduct($product);
+                \Illuminate\Support\Facades\Cache::put($cacheKey, true, 15);
+                $product->refresh();
+                $product->load('variants:id,product_id,nama_varian,stok_aktual,kode_barang');
+            } catch (\Throwable $e) {
+                // Fail-safe
+            }
         }
 
         $hasVariants = $product->variants->isNotEmpty();
