@@ -467,7 +467,7 @@ class OlseraApiService
      * @param string|null $updatedSince Timestamp perubahan terakhir (Format: Y-m-d H:i:s) untuk Smart Delta Sync
      * @return array
      */
-    public function fetchProductsFromOlsera(int $page = 1, int $limit = 50, ?string $outletId = null, ?string $updatedSince = null): array
+    public function fetchProductsFromOlsera(int $page = 1, int $limit = 100, ?string $outletId = null, ?string $updatedSince = null): array
     {
         if ($this->mockMode) {
             $query = Product::with(['category', 'variants']);
@@ -688,15 +688,16 @@ class OlseraApiService
         $modeDesc = $lastSyncTimestamp ? "Smart Polling (Delta sejak {$lastSyncTimestamp})" : "Full Sync";
 
         $startTime = microtime(true);
-        $maxSafeExecutionSeconds = 30; // Batas aman hosting agar Nginx tidak 504 Gateway Timeout
+        $isCli = (PHP_SAPI === 'cli');
+        $maxSafeExecutionSeconds = $isCli ? 180 : 28; // Batas aman: 180s di CLI/Cron, 28s di browser (hindari Nginx 504)
         $timeLimitReached = false;
+        $perPage = 100; // 100 item per halaman -> seluruh 661 produk tuntas hanya dalam 7 halaman (~15 detik)
 
         try {
             $page = 1;
             $hasMore = true;
-            $effectiveMaxPages = $forceFullSync ? $maxPages : 3; // Delta sync fokus ke 150 produk teratas yang baru diubah (super cepat < 2 detik)
 
-            while ($hasMore && $page <= $effectiveMaxPages) {
+            while ($hasMore && $page <= $maxPages) {
                 // Cek batas aman waktu eksekusi agar tidak terkena Nginx 504 Gateway Timeout
                 if ((microtime(true) - $startTime) > $maxSafeExecutionSeconds) {
                     Log::warning("Sinkronisasi Olsera dijeda pada halaman {$page} ({$maxSafeExecutionSeconds} detik) demi keamanan Nginx. Data yang sudah diproses tetap tersimpan.");
@@ -704,8 +705,8 @@ class OlseraApiService
                     break;
                 }
 
-                // Tarik data dengan parameter delta timestamp
-                $result = $this->fetchProductsFromOlsera($page, 50, $outletId, $lastSyncTimestamp);
+                // Tarik data 100 item per halaman
+                $result = $this->fetchProductsFromOlsera($page, $perPage, $outletId, $lastSyncTimestamp);
                 if (!$result['success']) {
                     // Jika halaman 1 gagal, batalkan seluruh sinkronisasi & jangan perbarui timestamp!
                     if ($page === 1) {

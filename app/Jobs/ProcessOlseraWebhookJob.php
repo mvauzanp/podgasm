@@ -64,6 +64,13 @@ class ProcessOlseraWebhookJob implements ShouldQueue
             }
         }
 
+        // 1B. Tangani Event Pembelian Barang Masuk / Penerimaan Barang (Open Purchase / Restock)
+        $flag = (string) ($this->payload['flag_webhook'] ?? $data['flag_webhook'] ?? '');
+        if (str_contains($flag, 'Purchase') || str_contains((string) $event, 'purchase') || isset($data['purchase_no']) || isset($data['openpurchase_id'])) {
+            Log::info("Olsera Webhook Ingestion: Mendeteksi event Pembelian Barang Masuk ({$flag}). Memulai sinkronisasi stok penuh katalog...");
+            app(\App\Services\OlseraApiService::class)->syncCatalogAndStock(forceFullSync: true);
+            return;
+        }
         // 2. Tangani Event Transaksi / Pesanan Kasir POS (Order Completed / Created)
         // 2. Tangani Event Transaksi / Pesanan Kasir POS (Order Completed / Created / Sales)
         $items = $data['items'] ?? $this->payload['items'] ?? $data['order_items'] ?? $data['details'] ?? $data['products'] ?? $data['lines'] ?? $data['order_details'] ?? null;
